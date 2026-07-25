@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { BlockParse, HardBlock, Severity } from './types.js';
+import type { AttributedHardBlock, BlockParse, HardBlock, JudgeResult, Severity, UnknownJudge } from './types.js';
 
 // The reviewed artifact is untrusted input and judges routinely quote it back.
 // A per-run key marks where the judge's own footer starts, so quoted artifact
@@ -114,4 +114,53 @@ function normaliseSeverity(raw: string): Severity {
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export interface BlockAggregate {
+  blocked: boolean;
+  hardBlocks: AttributedHardBlock[];
+  diagnosticBlocks: AttributedHardBlock[];
+  unknownJudges: UnknownJudge[];
+}
+
+const SEVERITY_RANK: Record<Severity, number> = { critical: 0, high: 1 };
+
+// Union, never majority: one judge seeing a real problem blocks even if the
+// others would talk it down. A safety gate wants the opposite of consensus.
+//
+// Salvage from an unparseable judge never sets `blocked`, so that signal stays
+// honest. The finding is not lost either: it lands in diagnosticBlocks and the
+// judge lands in unknownJudges, which a gating consumer already parks on.
+export function aggregateBlocks(judges: JudgeResult[]): BlockAggregate {
+  const hardBlocks: AttributedHardBlock[] = [];
+  const diagnosticBlocks: AttributedHardBlock[] = [];
+  const unknownJudges: UnknownJudge[] = [];
+
+  for (const judge of judges) {
+    if (judge.status !== 'success' || !judge.blockParse) continue;
+    const parse = judge.blockParse;
+    if (parse.status === 'parsed') {
+      hardBlocks.push(...attribute(judge.provider, parse.blocks));
+    } else {
+      diagnosticBlocks.push(...attribute(judge.provider, parse.diagnosticBlocks));
+      unknownJudges.push({
+        provider: judge.provider,
+        reason: parse.reason,
+        ...(parse.detail === undefined ? {} : { detail: parse.detail }),
+      });
+    }
+  }
+
+  return { blocked: hardBlocks.length > 0, hardBlocks, diagnosticBlocks, unknownJudges };
+}
+
+// Judge order is preserved (callers pass judges in configured provider order),
+// so sorting within a judge is enough to make the whole list deterministic and
+// keep TOON snapshots stable.
+function attribute(provider: string, blocks: HardBlock[]): AttributedHardBlock[] {
+  return blocks
+    .map((b) => ({ ...b, provider }))
+    .sort(
+      (x, y) => SEVERITY_RANK[x.severity] - SEVERITY_RANK[y.severity] || x.title.localeCompare(y.title)
+    );
 }
