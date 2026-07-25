@@ -6,6 +6,7 @@ export interface JudgeResult {
   reasoning?: string;
   error?: { message: string; code?: string };
   usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+  blockParse?: BlockParse;
 }
 
 export interface CouncilRequest {
@@ -70,4 +71,38 @@ export interface DebateSession {
   turns: DebateTurn[]; // flat, in speaking order
   nextTurn: { round: number; participant: string; order: string[] }; // order is the frozen speaking order for `round`
   warnings?: string[];
+}
+
+export type Severity = 'critical' | 'high';
+
+export interface HardBlock {
+  severity: Severity;
+  rawSeverity?: string; // the judge's original word, when it needed normalising
+  title: string;
+  location?: string;
+}
+
+export type UnparseableReason =
+  | 'no-key' // footer key line absent
+  | 'no-header' // key present, BLOCKERS: header absent
+  | 'bad-header' // header present but the count is neither none/0 nor an integer
+  | 'count-mismatch'; // declared count does not equal parsed count
+
+export type BlockParse =
+  | { status: 'parsed'; blocks: HardBlock[] }
+  | {
+      status: 'unparseable';
+      reason: UnparseableReason;
+      detail?: string;
+      diagnosticBlocks: HardBlock[];
+    };
+
+export interface AttributedHardBlock extends HardBlock {
+  provider: string;
+}
+
+export interface UnknownJudge {
+  provider: string;
+  reason: UnparseableReason;
+  detail?: string;
 }
