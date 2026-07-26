@@ -67,6 +67,11 @@ export function resolveModels(
   const explicit = (models ?? []).map((m) => m.trim()).filter((m) => m.length > 0);
   if (explicit.length > 0) return explicit;
 
+  // A supplied-but-empty list is a typo, not a request for every provider.
+  if (models !== undefined && models.length > 0) {
+    throw new CouncilError('--models was given but listed no providers', 'BAD_ARG');
+  }
+
   const configured = Object.keys(providers);
   if (configured.length === 0) {
     throw new CouncilError(

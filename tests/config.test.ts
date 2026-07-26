@@ -112,4 +112,17 @@ describe('resolveModels', () => {
       expect((err as CouncilError).code).toBe('NO_PROVIDERS');
     }
   });
+
+  it('throws BAD_ARG when --models was given but listed no providers', () => {
+    expect(() => resolveModels(['', ' '], providers)).toThrow(CouncilError);
+    try {
+      resolveModels(['', ' '], providers);
+    } catch (err) {
+      expect((err as CouncilError).code).toBe('BAD_ARG');
+    }
+  });
+
+  it('treats an explicitly empty array as "not specified" and uses all providers', () => {
+    expect(resolveModels([], providers)).toEqual(['alpha', 'beta']);
+  });
 });
