@@ -14,4 +14,10 @@ Run:
 node /home/rufi/projects/council-axi/dist/cli.js review "$ARGUMENTS"
 ```
 
+Options:
+
+- `--fail-on-block` - exit 3 when the council reports a hard block
+- `--fail-on-unknown` - exit 4 when a judge response could not be parsed
+- `--strict` - both of the above
+
 Return stdout verbatim.

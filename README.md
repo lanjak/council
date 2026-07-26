@@ -171,6 +171,51 @@ synthesis:
 help[1]: Run `npx -y council-axi review "<prompt>" --models openai,groq`
 ```
 
+## Library usage
+
+council-axi is importable as an ESM library, so a programmatic consumer never
+has to shell out or parse stdout.
+
+```ts
+import { runReview } from 'council-axi';
+
+const result = await runReview({
+  prompt: 'Review this change',
+  diff: { range: 'main...HEAD' },
+});
+
+if (result.blocked) {
+  for (const b of result.hardBlocks) {
+    console.error(`${b.provider}: [${b.severity}] ${b.title} ${b.location ?? ''}`);
+  }
+}
+```
+
+### Deciding whether to gate
+
+Three orthogonal signals, so you choose your own policy:
+
+| Field | Meaning |
+|---|---|
+| `blocked` | A judge we could read cleanly reported at least one hard block |
+| `unknownJudges` | A judge answered, but its footer could not be parsed |
+| `availableCount < totalCount` | A provider was unreachable |
+
+`blocked` never inflates from salvage. A judge whose footer was truncated lands
+in `unknownJudges`, and whatever blocks survived land in `diagnosticBlocks`.
+
+A strict gate treats all three as reasons to stop:
+
+```ts
+if (result.blocked || result.unknownJudges.length > 0 ||
+    result.availableCount < result.totalCount) {
+  parkForHuman();
+}
+```
+
+`loadConfig` is exported but **unstable**: configuration is being reworked and
+its shape will change.
+
 ## Debate mode
 
 `review` and `plan` ask judges independently, in parallel, and synthesize the
@@ -201,6 +246,16 @@ Options for `debate "<prompt>"` (same artifact flags as `review`/`plan`):
 - `-f, --file <path>` - attach a file or directory (repeatable)
 - `--diff [range]` - attach git diff (default: HEAD)
 - `--stdin` - attach artifact content from stdin
+- `--no-participate` - judges only; never pauses for your turn. Use for
+  unattended runs where there is no human to take a turn.
+
+By default the caller joins the rotation: it authored the prompt, so its verdict
+gates consensus like any judge, and the run pauses for your turn.
+
+Pass `--no-participate` for a judges-only debate that runs to consensus or the
+round cap without ever pausing. Use it for unattended runs and from the library,
+where there is no human to take a turn. Sit in the rotation when you have a
+position to defend; stay out when you want the judges to argue without you.
 
 ### Verdict tags
 
@@ -286,11 +341,48 @@ inputs first, then the diff, then directory expansions; anything past the cap
 is truncated or omitted and named in the output's `warnings` section. Override
 with `COUNCIL_MAX_ARTIFACT_BYTES`.
 
+### Hard blocks
+
+Judges end their review with a machine-readable footer, so a consumer never has
+to read the prose to find out whether something blocks:
+
+```
+COUNCIL-BLOCKS-KEY: 7f3c2a91
+BLOCKERS: 2
+BLOCKER: critical | no auth check on the admin route | src/api.ts:42
+BLOCKER: high | unsanitized input reaches the query builder | src/db.ts:88
+```
+
+A clean review emits `BLOCKERS: none`. The key line is generated per run - see
+[Security](#security).
+
+Everything in `hardBlocks` blocks by definition. Severity (`critical` or `high`)
+ranks urgency for a human reader and never gates, so you never have to pick a
+threshold. Non-blocking nits stay in the prose.
+
+If a judge answers but its footer cannot be read, it is reported under
+`unknown` rather than being guessed at in either direction.
+
 ## Exit codes
 
-- `0` - at least one judge responded
-- `1` - runtime error or no providers available
-- `2` - unknown flag or argument
+| Code | Meaning |
+|---|---|
+| 0 | Success |
+| 1 | `CouncilError` |
+| 2 | Bad CLI usage |
+| 3 | Hard block found (only with `--fail-on-block` or `--strict`) |
+| 4 | Unparseable judge (only with `--fail-on-unknown` or `--strict`) |
+
+## Security
+
+Judges tag their hard-block footer with a per-run key so that artifact content
+quoted back in a response is never mistaken for a verdict. The key is generated
+fresh for every run.
+
+This defends against a reviewed artifact accidentally or naively spoofing a
+verdict. It does not defend against a deliberate prompt injection that instructs
+the judge to emit the key. Treat results over untrusted third-party code as
+advisory.
 
 ## Agent integration
 

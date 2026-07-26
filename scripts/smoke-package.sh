@@ -33,4 +33,7 @@ node smoke.mjs
 
 cd "$ROOT"
 npx publint --strict "$WORK/$TARBALL"
+# --profile esm-only: this package intentionally has no `require` condition, so
+# attw's default profile flags a spurious CJSResolvesToESM. The profile is a
+# declaration of package shape, not a suppression of a real problem.
 npx attw --profile esm-only --pack "$WORK/$TARBALL"

@@ -48,6 +48,19 @@ session id and the exact `debate turn <session-id> --stdin` command to
 continue with, and your verdict gates consensus like any judge's. Sessions
 expire 24 hours after creation.
 
+## Output format
+
+Review and plan output carries a machine-readable decision alongside the prose:
+
+- `blocked: yes|no` - whether any judge that parsed cleanly reported a hard block
+- `blocks[n]{provider,severity,title,location}` - the blocks themselves, attributed
+- `diagnostic[n]{...}` - blocks salvaged from a judge whose footer did not parse;
+  these never set `blocked`
+- `unknown[n]` - judges that answered but could not be parsed, with the reason
+
+Read `blocked` rather than the synthesis prose when you need a decision. Treat a
+non-empty `unknown` section as "we do not know", not as "clean".
+
 ## Commands
 
 - `npx -y council-axi setup` - check authentication

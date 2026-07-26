@@ -17,7 +17,12 @@ Run:
 node /home/rufi/projects/council-axi/dist/cli.js debate "$ARGUMENTS"
 ```
 
-You are a participant in every debate. When the output ends with
+Options:
+
+- `--no-participate` - judges only; never pauses for your turn. Use for
+  unattended runs where there is no human to take a turn.
+
+By default you are a participant in every debate. When the output ends with
 `status: awaiting-caller`, it is your turn: read the transcript, form your
 own position, attack the weakest points of the other judges' latest turns,
 and continue with the printed `debate turn <session-id> --stdin` command,
