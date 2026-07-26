@@ -1,5 +1,6 @@
 import { renderTOON } from '../output.js';
 import { CouncilError } from '../errors.js';
+import { loadConfig, resolveModels } from '../config.js';
 import { parseCapBytesOverride, parseModelList } from '../input.js';
 import { readStdinPayload } from '../stdin.js';
 import { runReview } from '../runners/review.js';
@@ -32,9 +33,15 @@ export async function reviewCommand(
   prompt: string,
   options: { models?: string } & ArtifactOptions
 ): Promise<void> {
+  // Resolve and validate the model list BEFORE reading stdin. A bad --models
+  // must fail immediately rather than after a blocking stdin read drains.
+  const config = loadConfig();
+  const models = resolveModels(parseModelList(options.models), config.providers);
+
   const output = await runReview({
     prompt,
-    models: parseModelList(options.models),
+    models,
+    config,
     ...(await readArtifactInput(options)),
   });
   console.log(renderTOON(output));
