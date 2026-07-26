@@ -9,13 +9,23 @@ const config = {
   model: 'test-model',
 };
 
+// AnthropicProvider.chat() calls messages.stream(...).finalMessage(), not
+// messages.create(...) - see the comment on that call site for why
+// (the SDK's non-streaming path throws client-side above a max_tokens
+// threshold). Mock the stream() method's return value accordingly.
+function mockStream(provider: AnthropicProvider, message: unknown) {
+  return vi.spyOn(provider['client'].messages, 'stream').mockReturnValue({
+    finalMessage: () => Promise.resolve(message),
+  } as any);
+}
+
 describe('AnthropicProvider', () => {
   it('returns chat content from a single text block', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    mockStream(provider, {
       content: [{ type: 'text', text: 'hello' }],
       usage: { input_tokens: 10, output_tokens: 5 },
-    } as any);
+    });
 
     const result = await provider.chat({ prompt: 'hi', model: 'test-model' });
 
@@ -24,13 +34,13 @@ describe('AnthropicProvider', () => {
 
   it('joins multiple text blocks with a newline', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    mockStream(provider, {
       content: [
         { type: 'text', text: 'first' },
         { type: 'text', text: 'second' },
       ],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     const result = await provider.chat({ prompt: 'hi', model: 'test-model' });
 
@@ -39,51 +49,51 @@ describe('AnthropicProvider', () => {
 
   it('sends system as a top-level param, not a message', async () => {
     const provider = new AnthropicProvider(config);
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', system: 'be nice', model: 'test-model' });
 
-    const call = create.mock.calls[0][0];
+    const call = stream.mock.calls[0][0];
     expect(call.system).toBe('be nice');
     expect(call.messages).toEqual([{ role: 'user', content: 'hi' }]);
   });
 
   it('omits a whitespace-only system prompt entirely', async () => {
     const provider = new AnthropicProvider(config);
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', system: '   ', model: 'test-model' });
 
-    expect('system' in create.mock.calls[0][0]).toBe(false);
+    expect('system' in stream.mock.calls[0][0]).toBe(false);
   });
 
   it('omits an empty-string system prompt entirely', async () => {
     const provider = new AnthropicProvider(config);
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', system: '', model: 'test-model' });
 
-    expect('system' in create.mock.calls[0][0]).toBe(false);
+    expect('system' in stream.mock.calls[0][0]).toBe(false);
   });
 
   it('filters out non-text content blocks (e.g. tool_use)', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    mockStream(provider, {
       content: [
         { type: 'tool_use', id: 'x', name: 'noop', input: {} },
         { type: 'text', text: 'hi' },
       ],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     const result = await provider.chat({ prompt: 'hi', model: 'test-model' });
 
@@ -92,7 +102,7 @@ describe('AnthropicProvider', () => {
 
   it('maps usage including cache tokens into a computed total', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: {
         input_tokens: 10,
@@ -100,7 +110,7 @@ describe('AnthropicProvider', () => {
         cache_creation_input_tokens: 2,
         cache_read_input_tokens: 3,
       },
-    } as any);
+    });
 
     const result = await provider.chat({ prompt: 'hi', model: 'test-model' });
 
@@ -109,10 +119,10 @@ describe('AnthropicProvider', () => {
 
   it('defaults missing usage fields to zero', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 10, output_tokens: 5 },
-    } as any);
+    });
 
     const result = await provider.chat({ prompt: 'hi', model: 'test-model' });
 
@@ -121,43 +131,65 @@ describe('AnthropicProvider', () => {
 
   it('defaults max_tokens to DEFAULT_ANTHROPIC_MAX_TOKENS', async () => {
     const provider = new AnthropicProvider(config);
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', model: 'test-model' });
 
-    expect(create.mock.calls[0][0].max_tokens).toBe(8192);
+    expect(stream.mock.calls[0][0].max_tokens).toBe(8192);
   });
 
   it('honors a per-provider maxTokens override', async () => {
     const provider = new AnthropicProvider({ ...config, maxTokens: 4096 });
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', model: 'test-model' });
 
-    expect(create.mock.calls[0][0].max_tokens).toBe(4096);
+    expect(stream.mock.calls[0][0].max_tokens).toBe(4096);
   });
 
   it('call-option maxTokens wins over both provider config and the default', async () => {
     const provider = new AnthropicProvider({ ...config, maxTokens: 4096 });
-    const create = vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+    const stream = mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
     await provider.chat({ prompt: 'hi', model: 'test-model', maxTokens: 2048 });
 
-    expect(create.mock.calls[0][0].max_tokens).toBe(2048);
+    expect(stream.mock.calls[0][0].max_tokens).toBe(2048);
+  });
+
+  it('uses messages.stream, never messages.create, so a large max_tokens never trips the SDK non-streaming guard', async () => {
+    // Regression test: production broke because chat() used to call
+    // messages.create() directly, which throws client-side (before any
+    // network request) once max_tokens is large enough that a non-streaming
+    // call could plausibly exceed 10 minutes - 65536, the value the
+    // OpenAI-compatible README already recommends for reasoning models,
+    // trips it every time. Asserting create() is never invoked pins the fix.
+    const provider = new AnthropicProvider(config);
+    const stream = mockStream(provider, {
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 1, output_tokens: 1 },
+    });
+    const create = vi.spyOn(provider['client'].messages, 'create');
+
+    await provider.chat({ prompt: 'hi', model: 'test-model', maxTokens: 65536 });
+
+    expect(stream.mock.calls[0][0].max_tokens).toBe(65536);
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('propagates API errors as rejections', async () => {
     const provider = new AnthropicProvider(config);
-    vi.spyOn(provider['client'].messages, 'create').mockRejectedValue(new Error('rate limit'));
+    vi.spyOn(provider['client'].messages, 'stream').mockImplementation(() => {
+      throw new Error('rate limit');
+    });
 
     await expect(provider.chat({ prompt: 'hi', model: 'test-model' })).rejects.toThrow(
       'rate limit'
@@ -166,31 +198,31 @@ describe('AnthropicProvider', () => {
 });
 
 describe('AnthropicProvider temperature handling', () => {
-  const mockCreate = (provider: AnthropicProvider) =>
-    vi.spyOn(provider['client'].messages, 'create').mockResolvedValue({
+  const setup = (provider: AnthropicProvider) =>
+    mockStream(provider, {
       content: [{ type: 'text', text: 'ok' }],
       usage: { input_tokens: 1, output_tokens: 1 },
-    } as any);
+    });
 
   it('omits temperature entirely when nothing is configured', async () => {
     const provider = new AnthropicProvider(config);
-    const create = mockCreate(provider);
+    const stream = setup(provider);
     await provider.chat({ prompt: 'hi', model: 'test-model' });
-    expect('temperature' in create.mock.calls[0][0]).toBe(false);
+    expect('temperature' in stream.mock.calls[0][0]).toBe(false);
   });
 
   it('sends the provider-config temperature when set', async () => {
     const provider = new AnthropicProvider({ ...config, temperature: 1 });
-    const create = mockCreate(provider);
+    const stream = setup(provider);
     await provider.chat({ prompt: 'hi', model: 'test-model' });
-    expect(create.mock.calls[0][0].temperature).toBe(1);
+    expect(stream.mock.calls[0][0].temperature).toBe(1);
   });
 
   it('call option temperature wins over provider config', async () => {
     const provider = new AnthropicProvider({ ...config, temperature: 1 });
-    const create = mockCreate(provider);
+    const stream = setup(provider);
     await provider.chat({ prompt: 'hi', model: 'test-model', temperature: 0.2 });
-    expect(create.mock.calls[0][0].temperature).toBe(0.2);
+    expect(stream.mock.calls[0][0].temperature).toBe(0.2);
   });
 });
 

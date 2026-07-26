@@ -42,13 +42,27 @@ export class AnthropicProvider extends LLMProvider {
     const temperature = options.temperature ?? this.config.temperature;
     const system = options.system?.trim() ? options.system : undefined;
 
-    const response = await this.client.messages.create({
-      model: options.model,
-      max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_ANTHROPIC_MAX_TOKENS,
-      messages: [{ role: 'user', content: options.prompt }],
-      ...(system ? { system } : {}),
-      ...(temperature !== undefined ? { temperature } : {}),
-    });
+    // Uses the streaming helper (accumulated into one final message) even
+    // though this provider never exposes streaming to its own callers: the
+    // SDK's non-streaming create() throws client-side, before any network
+    // call, whenever max_tokens is large enough that the request could
+    // plausibly run past 10 minutes (see calculateNonstreamingTimeout in
+    // @anthropic-ai/sdk's client.js) - a value like 65536, which the
+    // OpenAI-compatible README already recommends for reasoning models,
+    // trips this every time (confirmed in production: every Anthropic-kind
+    // provider failed once max_tokens was set that high). stream().
+    // finalMessage() never takes the non-streaming path, so it isn't
+    // subject to that guard, while still resolving to the one accumulated
+    // Message - same shape create() would have returned.
+    const response = await this.client.messages
+      .stream({
+        model: options.model,
+        max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_ANTHROPIC_MAX_TOKENS,
+        messages: [{ role: 'user', content: options.prompt }],
+        ...(system ? { system } : {}),
+        ...(temperature !== undefined ? { temperature } : {}),
+      })
+      .finalMessage();
 
     // Non-text blocks (tool_use, thinking, etc.) are intentionally dropped:
     // no tool use is requested and extended thinking is off by design (see
