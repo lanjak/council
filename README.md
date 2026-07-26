@@ -229,10 +229,13 @@ Each round, judges speak in turn and each sees every prior turn's full
 response before writing their own. Judges rotate through the same order each
 round. A debate needs at least 2 judges (`NO_QUORUM` otherwise).
 
-You are always a participant: the caller sits in the rotation as one more
+By default you are a participant: the caller sits in the rotation as one more
 judge, is attacked like one, and its verdict gates consensus like everyone
 else's. The command pauses when your turn comes up and tells you exactly how
-to continue (see "Taking your turn" below).
+to continue (see "Taking your turn" below). Pass `--no-participate` for a
+judges-only debate that runs to consensus or the round cap without ever
+pausing - use it for unattended runs and from the library, where there is no
+human to take a turn.
 
 ```sh
 $ council-axi debate "Should we add a caching layer here?" --models openai,groq
@@ -248,14 +251,6 @@ Options for `debate "<prompt>"` (same artifact flags as `review`/`plan`):
 - `--stdin` - attach artifact content from stdin
 - `--no-participate` - judges only; never pauses for your turn. Use for
   unattended runs where there is no human to take a turn.
-
-By default the caller joins the rotation: it authored the prompt, so its verdict
-gates consensus like any judge, and the run pauses for your turn.
-
-Pass `--no-participate` for a judges-only debate that runs to consensus or the
-round cap without ever pausing. Use it for unattended runs and from the library,
-where there is no human to take a turn. Sit in the rotation when you have a
-position to defend; stay out when you want the judges to argue without you.
 
 ### Verdict tags
 
