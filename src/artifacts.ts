@@ -1,8 +1,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import ignore, { type Ignore } from 'ignore';
 import { CouncilError } from './errors.js';
+
+// Prefix recognized on a --file value to source artifact content from a
+// command's stdout instead of the filesystem - for content that has no
+// physical file at all (e.g. docs stored in a database and fetched through
+// a CLI), so callers don't need a "write to a temp file, pass --file,
+// remember to clean it up" workaround.
+const CMD_PREFIX = 'cmd:';
 
 export interface ArtifactBlock {
   label: string;
@@ -35,6 +42,11 @@ export function assembleArtifacts(options: AssembleOptions): ArtifactBundle {
   const expanded: ArtifactBlock[] = [];
 
   for (const input of options.files ?? []) {
+    if (input.startsWith(CMD_PREFIX)) {
+      const block = cmdArtifactBlock(input.slice(CMD_PREFIX.length), cwd, warnings);
+      if (block) explicit.push(block);
+      continue;
+    }
     const full = path.resolve(cwd, input);
     if (!fs.existsSync(full)) {
       warnings.push(`not found: ${input}`);
@@ -178,6 +190,31 @@ function expandDirectory(dir: string, cwd: string): string[] {
 
   walk(dir);
   return results;
+}
+
+function cmdArtifactBlock(command: string, cwd: string, warnings: string[]): ArtifactBlock | undefined {
+  const trimmed = command.trim();
+  if (!trimmed) {
+    warnings.push('cmd: artifact given an empty command');
+    return undefined;
+  }
+
+  let content: string;
+  try {
+    // A shell string, not execFileSync's argv array: the whole point is to
+    // let the user's own command use quoting, pipes, etc. This is their own
+    // local invocation - equivalent trust level to them running it directly
+    // in a terminal, not untrusted input crossing a privilege boundary.
+    content = execSync(trimmed, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    warnings.push(`cmd failed: ${trimmed}: ${message}`);
+    return undefined;
+  }
+
+  if (content.trim().length === 0) return undefined;
+  const size = Buffer.byteLength(content);
+  return { label: `--- cmd:${trimmed} (${formatBytes(size)}) ---`, content, truncated: false };
 }
 
 function gitDiffBlock(spec: { range?: string; paths?: string[] }, cwd: string): ArtifactBlock | undefined {
