@@ -202,4 +202,41 @@ describe('debate --no-participate', () => {
   it('taking a turn on a session that never existed fails cleanly', async () => {
     await expect(debateTurnCommand('no-such-session', 'my turn', {})).rejects.toThrow();
   });
+
+  it('filters a caller entry that arrives via configured providers, not --models', async () => {
+    // No --models flag: the roster comes from the configured provider list.
+    // A provider literally named 'caller' must still be filtered out.
+    vi.mocked(loadConfig).mockReturnValue({
+      providers: {
+        caller: { name: 'caller', apiKey: 'k', baseURL: 'u', displayName: 'Caller', model: 'm' },
+        alpha: { name: 'alpha', apiKey: 'k', baseURL: 'u', displayName: 'Alpha', model: 'm' },
+      },
+    } as any);
+
+    await expect(
+      debateCommand('x', { participate: false })
+    ).rejects.toThrow('A debate needs at least 2 judges');
+  });
+
+  it('filters a configured caller but still runs when two real judges remain', async () => {
+    vi.mocked(loadConfig).mockReturnValue({
+      providers: {
+        caller: { name: 'caller', apiKey: 'k', baseURL: 'u', displayName: 'Caller', model: 'm' },
+        alpha: { name: 'alpha', apiKey: 'k', baseURL: 'u', displayName: 'Alpha', model: 'm' },
+        beta: { name: 'beta', apiKey: 'k', baseURL: 'u', displayName: 'Beta', model: 'm' },
+      },
+    } as any);
+    vi.mocked(loadProvider).mockReturnValue({
+      name: 'x',
+      chat: vi.fn().mockResolvedValue({ content: 'I agree.\nVERDICT: AGREE' }),
+    } as any);
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await debateCommand('x', { participate: false });
+
+    const printed = spy.mock.calls.map((c) => String(c[0])).join('\n');
+    // 2 judges, not 3 - the configured 'caller' was filtered out.
+    expect(printed).toContain('judges: 2 of 2 responded');
+    spy.mockRestore();
+  });
 });

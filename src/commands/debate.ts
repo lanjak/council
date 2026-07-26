@@ -17,16 +17,12 @@ export interface DebateCommandOptions extends ArtifactOptions {
   participate?: boolean;
 }
 
-// 'caller' is a reserved participant name, not a provider key: the engine
-// treats any participant literally named CALLER as the human turn slot,
-// regardless of where it came from. Without this filter, --models a,caller
-// would smuggle a fake judge into the roster that the engine intercepts as
-// the reserved caller slot - either pausing for a turn that was never
-// supposed to happen (participate:true) or blowing up the round-1 quorum
-// check (participate:false), instead of being rejected as a bad model name.
+// 'caller' is a reserved participant name, never a provider key. Filter it
+// AFTER resolution so an explicit --models list and a COUNCIL_PROVIDERS
+// fallback are both covered - the earlier pre-filter only guarded the
+// explicit path.
 function parseModels(raw: string | undefined, providers: Parameters<typeof resolveModels>[1]): string[] {
-  const explicit = parseModelList(raw)?.filter((m) => m !== CALLER);
-  return resolveModels(explicit, providers);
+  return resolveModels(parseModelList(raw), providers).filter((m) => m !== CALLER);
 }
 
 export async function debateCommand(prompt: string, options: DebateCommandOptions): Promise<void> {
