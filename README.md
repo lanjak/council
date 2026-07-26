@@ -53,6 +53,12 @@ Optional:
 - `<KEY>_TEMPERATURE` - sampling temperature; when unset the field is omitted
   entirely and the provider's own default applies (some endpoints reject any
   explicit value - Kimi's k3 only accepts 1)
+- `<KEY>_KIND` - `openai` (default) or `anthropic`. Selects the wire
+  protocol spoken to `<KEY>_BASE_URL`. For `anthropic`, `<KEY>_BASE_URL` is
+  optional (defaults to `https://api.anthropic.com`) and, when set, is the
+  API root - not a full `/v1/messages` path. Note Anthropic's `temperature`
+  range is 0-1, unlike OpenAI-compatible's 0-2; a value above 1 copied from
+  an existing OpenAI-style entry will fail at request time.
 
 ### Example providers
 
@@ -106,6 +112,14 @@ Anything with an OpenAI-compatible endpoint works:
 LOCAL_API_KEY=not-needed
 LOCAL_BASE_URL=http://localhost:1234/v1
 LOCAL_MODEL=local-model
+```
+
+**Anthropic (Claude)**
+
+```sh
+CLAUDE_KIND=anthropic
+CLAUDE_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-opus-5
 ```
 
 ## Usage
