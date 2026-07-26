@@ -14,6 +14,7 @@ export interface CouncilRequest {
   mode: 'review' | 'plan';
   models: string[];
   systemPrompt?: string;
+  blockKey?: string;
 }
 
 export interface CouncilOutput {
@@ -24,6 +25,10 @@ export interface CouncilOutput {
   availableCount: number;
   totalCount: number;
   warnings?: string[];
+  blocked: boolean;
+  hardBlocks: AttributedHardBlock[];
+  diagnosticBlocks: AttributedHardBlock[];
+  unknownJudges: UnknownJudge[];
 }
 
 export interface ProviderConfig {

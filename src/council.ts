@@ -1,4 +1,5 @@
 import { loadProvider } from './providers/index.js';
+import { parseHardBlocks } from './blocks.js';
 import type { CouncilConfig } from './config.js';
 import type { CouncilRequest, JudgeResult } from './types.js';
 
@@ -49,6 +50,7 @@ export async function runCouncil(config: CouncilConfig, request: CouncilRequest)
         response: result.content,
         reasoning: result.reasoning,
         usage: result.usage,
+        ...(request.blockKey ? { blockParse: parseHardBlocks(result.content, request.blockKey) } : {}),
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

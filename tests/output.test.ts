@@ -12,6 +12,10 @@ const sample: CouncilOutput = {
   synthesis: 'Yes',
   availableCount: 1,
   totalCount: 2,
+  blocked: false,
+  hardBlocks: [],
+  diagnosticBlocks: [],
+  unknownJudges: [],
 };
 
 describe('output', () => {
