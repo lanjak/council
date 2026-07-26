@@ -84,14 +84,41 @@ export function parseHardBlocks(text: string, key: string): BlockParse {
 // the structured result already carries. Only safe to call when the footer
 // parsed cleanly - for an unparseable judge the raw tail is the evidence a
 // reader needs to see.
+//
+// Judges frequently wrap their footer in a code fence (the instruction's own
+// example is fenced), so slicing at the key line can leave a dangling opening
+// fence at the end of the kept prose. dropOrphanFence() cleans that up.
 export function stripBlockFooter(text: string, key: string): string {
   const normalised = text.replace(/\r\n?/g, '\n');
   const lines = normalised.split('\n');
   const keyLine = new RegExp(`^\\s*${escapeRegExp(KEY_LABEL)}:\\s*${escapeRegExp(key)}\\s*$`, 'i');
   for (let i = lines.length - 1; i >= 0; i--) {
     if (keyLine.test(lines[i])) {
-      return lines.slice(0, i).join('\n').trimEnd();
+      return dropOrphanFence(lines.slice(0, i).join('\n').trimEnd());
     }
+  }
+  return text;
+}
+
+// A fence marker line: ``` optionally followed by a language tag.
+const FENCE = /^\s*```/;
+
+// Judges often wrap the footer in a code fence, because the instruction's own
+// example is fenced. Slicing at the key line takes the closing fence with it
+// and leaves the opener dangling, which in a markdown renderer swallows
+// everything that follows. Drop a trailing orphan opener - but only when the
+// kept text is genuinely unbalanced, so a legitimate closing fence survives.
+function dropOrphanFence(text: string): string {
+  const lines = text.split('\n');
+  const fenceCount = lines.filter((l) => FENCE.test(l)).length;
+  if (fenceCount % 2 === 0) return text;
+
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim().length === 0) continue;
+    if (FENCE.test(lines[i])) {
+      return [...lines.slice(0, i), ...lines.slice(i + 1)].join('\n').trimEnd();
+    }
+    break;
   }
   return text;
 }

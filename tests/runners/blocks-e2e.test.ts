@@ -81,4 +81,13 @@ describe('runReview hard blocks', () => {
     // The raw response is preserved for consumers that want it.
     expect(out.judges[0].response).toContain(KEY_LABEL);
   });
+
+  it('leaves the synthesis with balanced code fences when judges fence the footer', async () => {
+    respondWith((k) => `Prose.\n\n\`\`\`\n${KEY_LABEL}: ${k}\nBLOCKERS: none\n\`\`\``);
+    const out = await runReview({ prompt: 'x', config });
+
+    const fences = out.synthesis.split('\n').filter((l) => l.trim().startsWith('```')).length;
+    expect(fences % 2).toBe(0);
+    expect(out.synthesis).toContain('Prose.');
+  });
 });

@@ -187,4 +187,41 @@ describe('stripBlockFooter', () => {
     const text = `Prose.\n\n\n${KEY_LABEL}: ${KEY}\nBLOCKERS: none`;
     expect(stripBlockFooter(text, KEY)).toBe('Prose.');
   });
+
+  it('drops the orphan opening fence when the judge fenced its footer', () => {
+    const text = ['Prose here.', '', '```', `${KEY_LABEL}: ${KEY}`, 'BLOCKERS: none', '```'].join('\n');
+    const stripped = stripBlockFooter(text, KEY);
+    expect(stripped).toBe('Prose here.');
+    expect(stripped).not.toContain('```');
+  });
+
+  it('keeps a legitimate closing fence that ends the prose', () => {
+    const text = [
+      'Use this instead:',
+      '```ts',
+      'const x = 1;',
+      '```',
+      '',
+      `${KEY_LABEL}: ${KEY}`,
+      'BLOCKERS: none',
+    ].join('\n');
+    const stripped = stripBlockFooter(text, KEY);
+    // The code block is balanced, so nothing about it may be touched.
+    expect(stripped).toBe(['Use this instead:', '```ts', 'const x = 1;', '```'].join('\n'));
+  });
+
+  it('leaves balanced fences alone even when the footer was fenced', () => {
+    const text = [
+      'Example:',
+      '```ts',
+      'const y = 2;',
+      '```',
+      '```',
+      `${KEY_LABEL}: ${KEY}`,
+      'BLOCKERS: none',
+      '```',
+    ].join('\n');
+    const stripped = stripBlockFooter(text, KEY);
+    expect(stripped).toBe(['Example:', '```ts', 'const y = 2;', '```'].join('\n'));
+  });
 });
