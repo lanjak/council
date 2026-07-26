@@ -350,6 +350,20 @@ inputs first, then the diff, then directory expansions; anything past the cap
 is truncated or omitted and named in the output's `warnings` section. Override
 with `COUNCIL_MAX_ARTIFACT_BYTES`.
 
+A `--file` value prefixed `cmd:` runs the rest as a shell command and attaches
+its stdout as an artifact block - for content with no physical file at all
+(a doc stored in a database, fetched through its own CLI, say), so you don't
+need to write it to a temp file first just to pass `--file` a path:
+
+```sh
+council-axi review "..." --file 'cmd:my-notes-tool page get "Projects/x/spec.md"'
+```
+
+A failing command is a warning, not a fatal error - the run continues with
+whatever other artifacts were given. Empty output produces no block. The
+command runs in the same directory `--file`/`--diff` resolve relative paths
+against.
+
 ### Hard blocks
 
 Judges end their review with a machine-readable footer, so a consumer never has

@@ -137,6 +137,70 @@ function initRepo() {
   git(['config', 'user.name', 'test']);
 }
 
+describe('assembleArtifacts - cmd: artifact source', () => {
+  it('attaches a command\'s stdout as a labeled block, no filesystem involved', () => {
+    const bundle = assembleArtifacts({ files: ["cmd:printf 'hello from a db'"], cwd: dir });
+
+    expect(bundle.blocks).toHaveLength(1);
+    expect(bundle.blocks[0].content).toBe('hello from a db');
+    expect(bundle.blocks[0].label).toBe("--- cmd:printf 'hello from a db' (15 B) ---");
+    expect(bundle.warnings).toEqual([]);
+  });
+
+  it('mixes cmd: and plain file sources in one call', () => {
+    write('a.md', 'A content');
+    const bundle = assembleArtifacts({
+      files: ['a.md', "cmd:printf 'B content'"],
+      cwd: dir,
+    });
+
+    expect(bundle.blocks).toHaveLength(2);
+    expect(bundle.blocks[0].content).toBe('A content');
+    expect(bundle.blocks[1].content).toBe('B content');
+  });
+
+  it('warns and continues when the command fails, instead of throwing', () => {
+    const bundle = assembleArtifacts({ files: ['cmd:exit 1'], cwd: dir });
+
+    expect(bundle.blocks).toHaveLength(0);
+    expect(bundle.warnings.some((w) => w.startsWith('cmd failed: exit 1'))).toBe(true);
+  });
+
+  it('produces no block when the command succeeds with empty output', () => {
+    const bundle = assembleArtifacts({ files: ['cmd:true'], cwd: dir });
+
+    expect(bundle.blocks).toHaveLength(0);
+    expect(bundle.warnings).toEqual([]);
+  });
+
+  it('warns and continues on an empty command after the prefix', () => {
+    const bundle = assembleArtifacts({ files: ['cmd:'], cwd: dir });
+
+    expect(bundle.blocks).toHaveLength(0);
+    expect(bundle.warnings).toEqual(['cmd: artifact given an empty command']);
+  });
+
+  it('runs the command in the given cwd', () => {
+    write('marker.txt', 'present');
+    const bundle = assembleArtifacts({ files: ['cmd:cat marker.txt'], cwd: dir });
+
+    expect(bundle.blocks).toHaveLength(1);
+    expect(bundle.blocks[0].content).toBe('present');
+  });
+
+  it('counts cmd: output against the artifact byte cap like any other block', () => {
+    const bundle = assembleArtifacts({
+      files: ["cmd:printf 'ABCDEFGHIJ'"],
+      cwd: dir,
+      capBytes: 16,
+    });
+
+    expect(bundle.blocks).toHaveLength(1);
+    expect(bundle.blocks[0].truncated).toBe(true);
+    expect(bundle.blocks[0].content).toBe('ABCD\n[truncated at 4 of 10 bytes]');
+  });
+});
+
 describe('assembleArtifacts - git diff', () => {
   it('attaches staged and unstaged changes by default (git diff HEAD)', () => {
     initRepo();
