@@ -116,3 +116,77 @@ describe('debate (caller always participates)', () => {
     expect(fs.readdirSync(debatesDir)).toHaveLength(2);
   });
 });
+
+describe('debate --no-participate', () => {
+  beforeEach(() => {
+    vi.mocked(loadConfig).mockReturnValue({
+      providers: {
+        alpha: { name: 'alpha', displayName: 'Alpha', apiKey: 'k', baseURL: 'https://x/v1', model: 'alpha-m' },
+        beta: { name: 'beta', displayName: 'Beta', apiKey: 'k', baseURL: 'https://x/v1', model: 'beta-m' },
+      },
+    });
+  });
+
+  it('excludes the caller from the roster and never pauses', async () => {
+    // Two judges that agree immediately -> consensus in round 1, no caller turn.
+    const agree = `I agree.\nVERDICT: AGREE`;
+    vi.mocked(loadProvider).mockReturnValue({
+      name: 'x',
+      chat: vi.fn().mockResolvedValue({ content: agree }),
+    } as any);
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await debateCommand('settle this', { models: 'alpha,beta', participate: false });
+
+    const printed = spy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(printed).not.toContain('awaiting your turn');
+    expect(printed).toContain('consensus: reached');
+    expect(printed).toContain('judges: 2 of 2 responded');
+    spy.mockRestore();
+  });
+
+  it('still defaults to participating when the flag is absent', async () => {
+    const agree = `I agree.\nVERDICT: AGREE`;
+    vi.mocked(loadProvider).mockReturnValue({
+      name: 'x',
+      chat: vi.fn().mockResolvedValue({ content: agree }),
+    } as any);
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await debateCommand('settle this', { models: 'alpha,beta' });
+
+    expect(spy.mock.calls.map((c) => String(c[0])).join('\n')).toContain('awaiting your turn');
+    spy.mockRestore();
+  });
+
+  it('still requires at least 2 judges without the caller to pad the roster', async () => {
+    await expect(
+      debateCommand('x', { models: 'alpha', participate: false })
+    ).rejects.toThrow('A debate needs at least 2 judges');
+  });
+
+  it('does not treat a provider literally named caller as the caller', async () => {
+    // 'caller' is a reserved participant name, not a provider key. Passing it
+    // via --models must not smuggle the caller back into a no-participate run.
+    vi.mocked(loadProvider).mockReturnValue({
+      name: 'x',
+      chat: vi.fn().mockResolvedValue({ content: 'I agree.\nVERDICT: AGREE' }),
+    } as any);
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await debateCommand('x', { models: 'alpha,caller', participate: false });
+
+    expect(spy.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('awaiting your turn');
+    spy.mockRestore();
+  });
+
+  it('aborting a session that never existed is a no-op', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await expect(debateAbortCommand('no-such-session')).resolves.toBeUndefined();
+    spy.mockRestore();
+  });
+
+  it('taking a turn on a session that never existed fails cleanly', async () => {
+    await expect(debateTurnCommand('no-such-session', 'my turn', {})).rejects.toThrow();
+  });
+});

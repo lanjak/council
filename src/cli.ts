@@ -60,6 +60,7 @@ debate
   .option('-m, --models <models>', 'Comma-separated provider list')
   .option('--max-rounds <n>', 'Maximum debate rounds (default: 5)')
   .option('--full', 'Include the complete round-by-round transcript')
+  .option('--no-participate', 'Judges only; never pause for your turn (for unattended runs)')
   .option('-f, --file <path>', 'Attach a file or directory (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')

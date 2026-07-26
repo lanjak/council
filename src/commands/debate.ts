@@ -14,24 +14,40 @@ export interface DebateCommandOptions extends ArtifactOptions {
   models?: string;
   maxRounds?: string;
   full?: boolean;
+  participate?: boolean;
+}
+
+// 'caller' is a reserved participant name, not a provider key: the engine
+// treats any participant literally named CALLER as the human turn slot,
+// regardless of where it came from. Without this filter, --models a,caller
+// would smuggle a fake judge into the roster that the engine intercepts as
+// the reserved caller slot - either pausing for a turn that was never
+// supposed to happen (participate:true) or blowing up the round-1 quorum
+// check (participate:false), instead of being rejected as a bad model name.
+function parseModels(raw: string | undefined, providers: Parameters<typeof resolveModels>[1]): string[] {
+  const explicit = parseModelList(raw)?.filter((m) => m !== CALLER);
+  return resolveModels(explicit, providers);
 }
 
 export async function debateCommand(prompt: string, options: DebateCommandOptions): Promise<void> {
   cleanupExpired();
   const config = loadConfig();
-  const models = resolveModels(parseModelList(options.models), config.providers);
+  const models = parseModels(options.models, config.providers);
   if (models.length < 2) {
     throw new CouncilError('A debate needs at least 2 judges; configure more providers or widen --models', 'NO_QUORUM');
   }
   const maxRounds = parseMaxRounds(options.maxRounds);
   const fullPrompt = buildPrompt(prompt, await readArtifactInput(options));
 
-  // The caller always debates: it authored the prompt, so it sits in the
-  // rotation and its verdict gates consensus like any judge.
+  // The caller participates by default: it authored the prompt, so it sits
+  // in the rotation and its verdict gates consensus. --no-participate drops
+  // it, which is what makes an unattended run possible.
+  const participate = options.participate !== false;
+
   const progress = await runDebate(config, {
     prompt: fullPrompt.text,
     models,
-    participate: true,
+    participate,
     maxRounds,
   });
 
@@ -56,7 +72,7 @@ export async function debateCommand(prompt: string, options: DebateCommandOption
     turns: progress.turns,
     consensus: progress.status === 'consensus',
     maxRounds,
-    totalCount: models.length + 1,
+    totalCount: models.length + (participate ? 1 : 0),
     warnings: fullPrompt.warnings,
   });
   console.log(renderDebateTOON(output, { full: options.full === true }));
