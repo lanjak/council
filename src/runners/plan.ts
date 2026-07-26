@@ -1,0 +1,45 @@
+import { loadConfig, resolveModels, type CouncilConfig } from '../config.js';
+import { runCouncil } from '../council.js';
+import { synthesize } from '../chairman.js';
+import { buildPrompt } from '../input.js';
+import { CouncilError } from '../errors.js';
+import type { CouncilOutput } from '../types.js';
+
+export interface PlanOptions {
+  prompt: string;
+  models?: string[];
+  config?: CouncilConfig;
+  files?: string[];
+  diff?: { range?: string };
+  stdinContent?: string;
+  capBytes?: number;
+}
+
+export async function runPlan(opts: PlanOptions): Promise<CouncilOutput> {
+  const config = opts.config ?? loadConfig();
+  const models = resolveModels(opts.models, config.providers);
+  const prompt = buildPrompt(opts.prompt, opts);
+  const systemPrompt =
+    'You are reviewing a plan or decision. Be adversarial: question assumptions, identify risks, and suggest alternatives. Keep your response concise.';
+
+  const judges = await runCouncil(config, {
+    prompt: prompt.text,
+    mode: 'plan',
+    models,
+    systemPrompt,
+  });
+  const availableCount = judges.filter((j) => j.status === 'success').length;
+  if (availableCount === 0) {
+    throw new CouncilError('All providers unavailable', 'NO_QUORUM');
+  }
+
+  return {
+    prompt: prompt.text,
+    mode: 'plan',
+    judges,
+    synthesis: synthesize({ prompt: prompt.text, mode: 'plan', models, systemPrompt }, judges),
+    availableCount,
+    totalCount: models.length,
+    warnings: prompt.warnings,
+  };
+}
