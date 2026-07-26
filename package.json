@@ -3,7 +3,15 @@
   "version": "0.3.0",
   "description": "Multi-LLM adversarial review council - an AXI",
   "type": "module",
-  "main": "./dist/cli.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "council-axi": "dist/cli.js"
   },
@@ -15,7 +23,8 @@
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "smoke": "./scripts/smoke-package.sh"
   },
   "dependencies": {
     "commander": "^12.0.0",
@@ -23,7 +32,9 @@
     "openai": "^4.90.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@types/node": "^22.0.0",
+    "publint": "^0.3.22",
     "tsx": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
