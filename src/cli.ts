@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { program, CommanderError } from 'commander';
 import { reviewCommand } from './commands/review.js';
 import { planCommand } from './commands/plan.js';
@@ -8,10 +11,16 @@ import { homeCommand } from './commands/home.js';
 import { hookCommand } from './commands/hook.js';
 import { formatError } from './errors.js';
 
+// Read from package.json at runtime rather than hardcoding a copy of the
+// version string here - a hardcoded literal silently drifts from
+// package.json on every release (it did, on the 0.4.1 release).
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8')) as { version: string };
+
 program
   .name('council-axi')
   .description('Multi-LLM adversarial review council - an AXI')
-  .version('0.4.0')
+  .version(pkg.version)
   .exitOverride()
   .configureOutput({
     writeOut: (str: string) => process.stdout.write(str),
