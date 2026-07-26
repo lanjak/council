@@ -17,6 +17,21 @@ function stubProvider(content: string): void {
   vi.mocked(loadProvider).mockReturnValue({ name: 'x', chat: vi.fn().mockResolvedValue({ content }) } as any);
 }
 
+// Echo back a footer using whatever key the runner generated, which is only
+// visible via the system prompt handed to the provider.
+function respondWith(body: (key: string) => string): void {
+  vi.mocked(loadProvider).mockImplementation(
+    () =>
+      ({
+        name: 'x',
+        chat: vi.fn(async (o: { system?: string }) => {
+          const key = /COUNCIL-BLOCKS-KEY: ([0-9a-f]+)/.exec(o.system ?? '')?.[1] ?? 'missing';
+          return { content: body(key) };
+        }),
+      }) as any
+  );
+}
+
 describe('runPlan', () => {
   it('returns a CouncilOutput instead of printing', async () => {
     stubProvider('looks fine to me');
@@ -73,5 +88,25 @@ describe('runPlan', () => {
       title: 'no rollback plan',
       location: 'plan.md:1',
     });
+  });
+
+  it('keeps the footer out of the synthesis but leaves the raw response intact', async () => {
+    respondWith((k) => `The plan ignores rollback.\n\n${KEY_LABEL}: ${k}\nBLOCKERS: 1\nBLOCKER: critical | no rollback path | plan.md:4`);
+    const out = await runPlan({ prompt: 'x', config });
+
+    expect(out.synthesis).toContain('The plan ignores rollback.');
+    expect(out.synthesis).not.toContain(KEY_LABEL);
+    expect(out.synthesis).not.toContain('BLOCKERS:');
+    // The raw response is preserved for consumers that want it.
+    expect(out.judges[0].response).toContain(KEY_LABEL);
+  });
+
+  it('leaves the synthesis with balanced code fences when judges fence the footer', async () => {
+    respondWith((k) => `Prose.\n\n\`\`\`\n${KEY_LABEL}: ${k}\nBLOCKERS: none\n\`\`\``);
+    const out = await runPlan({ prompt: 'x', config });
+
+    const fences = out.synthesis.split('\n').filter((l) => l.trim().startsWith('```')).length;
+    expect(fences % 2).toBe(0);
+    expect(out.synthesis).toContain('Prose.');
   });
 });
