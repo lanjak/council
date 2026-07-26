@@ -34,6 +34,9 @@ program
   .option('-f, --file <path>', 'Attach a file or directory (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
+  .option('--fail-on-block', 'Exit 3 when the council reports a hard block')
+  .option('--fail-on-unknown', 'Exit 4 when a judge response could not be parsed')
+  .option('--strict', 'Shorthand for --fail-on-block and --fail-on-unknown')
   .action(reviewCommand);
 
 program
@@ -43,6 +46,9 @@ program
   .option('-f, --file <path>', 'Attach a file or directory (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
+  .option('--fail-on-block', 'Exit 3 when the council reports a hard block')
+  .option('--fail-on-unknown', 'Exit 4 when a judge response could not be parsed')
+  .option('--strict', 'Shorthand for --fail-on-block and --fail-on-unknown')
   .action(planCommand);
 
 const debate = program
