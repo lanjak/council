@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { loadConfig, listProviders } from '../src/config.js';
+import { loadConfig, listProviders, resolveModels } from '../src/config.js';
+import { CouncilError } from '../src/errors.js';
+import type { ProviderConfig } from '../src/types.js';
 
 describe('config', () => {
   it('loads configured providers from COUNCIL_PROVIDERS', () => {
@@ -81,5 +83,33 @@ describe('temperature env override', () => {
     expect(config.providers.kimi.temperature).toBe(1);
     expect(config.providers.mimo.temperature).toBeUndefined();
     expect(config.providers.bad.temperature).toBeUndefined();
+  });
+});
+
+describe('resolveModels', () => {
+  const providers: Record<string, ProviderConfig> = {
+    alpha: { name: 'alpha', apiKey: 'k', baseURL: 'u', displayName: 'Alpha', model: 'm' },
+    beta: { name: 'beta', apiKey: 'k', baseURL: 'u', displayName: 'Beta', model: 'm' },
+  };
+
+  it('returns the explicit list when given', () => {
+    expect(resolveModels(['beta'], providers)).toEqual(['beta']);
+  });
+
+  it('drops empty entries rather than requesting a provider named ""', () => {
+    expect(resolveModels(['alpha', '', ' '], providers)).toEqual(['alpha']);
+  });
+
+  it('falls back to every configured provider', () => {
+    expect(resolveModels(undefined, providers)).toEqual(['alpha', 'beta']);
+  });
+
+  it('throws NO_PROVIDERS when nothing is configured', () => {
+    expect(() => resolveModels(undefined, {})).toThrow(CouncilError);
+    try {
+      resolveModels(undefined, {});
+    } catch (err) {
+      expect((err as CouncilError).code).toBe('NO_PROVIDERS');
+    }
   });
 });

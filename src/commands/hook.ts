@@ -6,7 +6,7 @@ import { synthesize } from '../chairman.js';
 import { runCouncil } from '../council.js';
 import { assembleArtifacts, formatArtifactPreamble } from '../artifacts.js';
 import { decideGate } from '../hooks/gate.js';
-import { parseCapBytesOverride } from './review.js';
+import { parseCapBytesOverride } from '../input.js';
 
 const GATE_SYSTEM_PROMPT = `You are one judge on a review council gating completion of a coding task. Review the diff of uncommitted changes. Be adversarial: look for bugs, security issues, broken contracts, missing tests. End your response with a final line of exactly one of:
 VERDICT: pass

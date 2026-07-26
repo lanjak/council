@@ -8,7 +8,10 @@ vi.mock('../../src/debate/loop.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   runDebate: vi.fn(),
 }));
-vi.mock('../../src/config.js', () => ({ loadConfig: vi.fn() }));
+vi.mock('../../src/config.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  loadConfig: vi.fn(),
+}));
 
 const t = (round: number, provider: string, verdict: 'agree' | 'disagree'): DebateTurn => ({
   round, provider, model: `${provider}-m`, status: 'success', response: `x\nVERDICT: ${verdict.toUpperCase()}`, verdict,

@@ -8,7 +8,10 @@ import { loadProvider } from '../../src/providers/index.js';
 import { saveSession, loadSession, sessionPath } from '../../src/debate/session.js';
 import type { DebateSession } from '../../src/types.js';
 
-vi.mock('../../src/config.js', () => ({ loadConfig: vi.fn() }));
+vi.mock('../../src/config.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  loadConfig: vi.fn(),
+}));
 vi.mock('../../src/providers/index.js', () => ({ loadProvider: vi.fn() }));
 
 let dir: string;

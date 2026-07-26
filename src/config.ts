@@ -1,4 +1,5 @@
 import type { ProviderConfig } from './types.js';
+import { CouncilError } from './errors.js';
 
 export interface CouncilConfig {
   providers: Record<string, ProviderConfig>;
@@ -54,4 +55,24 @@ export function listProviders(config: CouncilConfig): string[] {
 
 export function resolveModel(providerConfig: ProviderConfig): string | undefined {
   return providerConfig.model;
+}
+
+// One resolver for every command. Previously duplicated three times, and the
+// copies had drifted: only debate filtered empty entries, so `--models a,,b`
+// asked review and plan for a provider named "".
+export function resolveModels(
+  models: string[] | undefined,
+  providers: Record<string, ProviderConfig>
+): string[] {
+  const explicit = (models ?? []).map((m) => m.trim()).filter((m) => m.length > 0);
+  if (explicit.length > 0) return explicit;
+
+  const configured = Object.keys(providers);
+  if (configured.length === 0) {
+    throw new CouncilError(
+      'No providers configured. Set COUNCIL_PROVIDERS or pass --models.',
+      'NO_PROVIDERS'
+    );
+  }
+  return configured;
 }
