@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { loadConfig, listProviders, resolveModels } from '../src/config.js';
+import { parseModelList } from '../src/input.js';
 import { CouncilError } from '../src/errors.js';
 import type { ProviderConfig } from '../src/types.js';
 
@@ -124,5 +125,23 @@ describe('resolveModels', () => {
 
   it('treats an explicitly empty array as "not specified" and uses all providers', () => {
     expect(resolveModels([], providers)).toEqual(['alpha', 'beta']);
+  });
+
+  it('rejects a garbled --models flag through the real CLI composition', () => {
+    // The composition every command uses. This is what the CLI actually runs.
+    expect(() => resolveModels(parseModelList(',,'), providers)).toThrow(CouncilError);
+    try {
+      resolveModels(parseModelList(',,'), providers);
+    } catch (err) {
+      expect((err as CouncilError).code).toBe('BAD_ARG');
+    }
+  });
+
+  it('still resolves a valid list through the real CLI composition', () => {
+    expect(resolveModels(parseModelList('alpha, beta'), providers)).toEqual(['alpha', 'beta']);
+  });
+
+  it('still tolerates stray empties inside an otherwise valid list', () => {
+    expect(resolveModels(parseModelList('alpha,,beta'), providers)).toEqual(['alpha', 'beta']);
   });
 });

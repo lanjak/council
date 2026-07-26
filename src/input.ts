@@ -24,12 +24,13 @@ export function buildPrompt(
   return { text, warnings: bundle.warnings };
 }
 
+// Pure split-and-trim. Deliberately does NOT drop empty entries: resolveModels
+// is the sole owner of the "no list supplied" versus "a list was supplied but
+// named nothing" distinction, and it needs to see the raw entries to tell them
+// apart.
 export function parseModelList(csv: string | undefined): string[] | undefined {
   if (csv === undefined) return undefined;
-  return csv
-    .split(',')
-    .map((m) => m.trim())
-    .filter((m) => m.length > 0);
+  return csv.split(',').map((m) => m.trim());
 }
 
 export function parseCapBytesOverride(): number | undefined {

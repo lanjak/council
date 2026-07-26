@@ -8,8 +8,8 @@ describe('parseModelList', () => {
   it('splits and trims', () => {
     expect(parseModelList('a, b ,c')).toEqual(['a', 'b', 'c']);
   });
-  it('drops empty entries', () => {
-    expect(parseModelList('a,,b')).toEqual(['a', 'b']);
+  it('preserves empty entries so resolveModels can distinguish absent from empty', () => {
+    expect(parseModelList('a,,b')).toEqual(['a', '', 'b']);
   });
 });
 
