@@ -1,4 +1,4 @@
-import type { CouncilOutput, JudgeResult } from './types.js';
+import type { CouncilOutput, JudgeResult, AttributedHardBlock } from './types.js';
 
 export function renderTOON(output: CouncilOutput): string {
   const lines: string[] = [];
@@ -12,6 +12,17 @@ export function renderTOON(output: CouncilOutput): string {
         ? firstLine(judge.response ?? '')
         : judge.error?.message ?? 'unavailable';
     lines.push(`  ${judge.provider},${judge.model},${judge.status},${escapeComma(verdict)}`);
+  }
+
+  lines.push(`blocked: ${output.blocked ? 'yes' : 'no'}`);
+  pushBlockSection(lines, 'blocks', output.hardBlocks);
+  pushBlockSection(lines, 'diagnostic', output.diagnosticBlocks);
+
+  if (output.unknownJudges.length > 0) {
+    lines.push(`unknown[${output.unknownJudges.length}]:`);
+    for (const u of output.unknownJudges) {
+      lines.push(`  ${u.provider}: ${u.reason}${u.detail ? ` (${u.detail})` : ''}`);
+    }
   }
 
   const skipped = output.judges.filter((j) => j.status !== 'success');
@@ -69,4 +80,14 @@ export function previewPrompt(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').replace(/"/g, '\\"').trim();
   if (normalized.length <= PREVIEW_LEN) return normalized;
   return `${normalized.slice(0, PREVIEW_LEN)}... (${normalized.length} chars total)`;
+}
+
+function pushBlockSection(lines: string[], label: string, blocks: AttributedHardBlock[]): void {
+  if (blocks.length === 0) return;
+  lines.push(`${label}[${blocks.length}]{provider,severity,title,location}:`);
+  for (const b of blocks) {
+    lines.push(
+      `  ${b.provider},${b.severity},${escapeComma(b.title)},${escapeComma(b.location ?? '')}`
+    );
+  }
 }
