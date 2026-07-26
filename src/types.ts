@@ -39,6 +39,7 @@ export interface ProviderConfig {
   displayName: string;
   maxTokens?: number;
   temperature?: number;
+  kind?: 'openai' | 'anthropic';
 }
 
 export type Verdict = 'agree' | 'disagree';

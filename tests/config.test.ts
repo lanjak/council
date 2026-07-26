@@ -71,6 +71,51 @@ describe('config', () => {
 
     expect(config.providers.my_provider.displayName).toBe('My_provider');
   });
+
+  it('defaults kind to openai when _KIND is unset', () => {
+    const config = loadConfig({
+      COUNCIL_PROVIDERS: 'openai',
+      OPENAI_API_KEY: 'k',
+      OPENAI_BASE_URL: 'https://api.openai.com/v1',
+      OPENAI_MODEL: 'gpt-4o',
+    });
+    expect(config.providers.openai.kind).toBe('openai');
+  });
+
+  it('reads kind: anthropic case-insensitively', () => {
+    const config = loadConfig({
+      COUNCIL_PROVIDERS: 'claude',
+      CLAUDE_API_KEY: 'sk-ant-...',
+      CLAUDE_MODEL: 'claude-opus-5',
+      CLAUDE_KIND: 'Anthropic',
+    });
+    expect(config.providers.claude.kind).toBe('anthropic');
+  });
+
+  it('throws a BAD_KIND CouncilError on an unrecognized _KIND value', () => {
+    const badConfig = {
+      COUNCIL_PROVIDERS: 'claude',
+      CLAUDE_API_KEY: 'sk-ant-...',
+      CLAUDE_MODEL: 'claude-opus-5',
+      CLAUDE_KIND: 'anthropicc',
+    };
+    expect(() => loadConfig(badConfig)).toThrow(CouncilError);
+    try {
+      loadConfig(badConfig);
+    } catch (err) {
+      expect((err as CouncilError).code).toBe('BAD_KIND');
+    }
+  });
+
+  it('defaults kind to openai when _KIND is whitespace-only', () => {
+    const config = loadConfig({
+      COUNCIL_PROVIDERS: 'claude',
+      CLAUDE_API_KEY: 'sk-ant-...',
+      CLAUDE_MODEL: 'claude-opus-5',
+      CLAUDE_KIND: '   ',
+    });
+    expect(config.providers.claude.kind).toBe('openai');
+  });
 });
 
 describe('temperature env override', () => {

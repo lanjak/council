@@ -18,6 +18,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     const displayName = env[`${prefix}_DISPLAY_NAME`] ?? capitalize(provider);
     const maxTokens = parsePositiveInt(env[`${prefix}_MAX_TOKENS`]);
     const temperature = parseTemperature(env[`${prefix}_TEMPERATURE`]);
+    const kind = parseKind(env[`${prefix}_KIND`], prefix);
 
     providers[provider] = {
       name: provider,
@@ -27,6 +28,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       displayName,
       maxTokens,
       temperature,
+      kind,
     };
   }
 
@@ -47,6 +49,21 @@ function parseTemperature(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const n = Number.parseFloat(value);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+function parseKind(value: string | undefined, prefix: string): 'openai' | 'anthropic' {
+  // Trim BEFORE the emptiness check: a whitespace-only value (e.g. a stray
+  // space from a sloppy .env edit) must default to 'openai' like an unset
+  // or empty value, not throw - trimming after the check would only catch
+  // the empty-string case and treat whitespace as an unrecognized value.
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized === '') return 'openai';
+  if (normalized === 'openai') return 'openai';
+  if (normalized === 'anthropic') return 'anthropic';
+  throw new CouncilError(
+    `Unrecognized ${prefix}_KIND "${value}" (expected "openai" or "anthropic")`,
+    'BAD_KIND'
+  );
 }
 
 export function listProviders(config: CouncilConfig): string[] {
