@@ -166,17 +166,30 @@ describe('debate --no-participate', () => {
   });
 
   it('does not treat a provider literally named caller as the caller', async () => {
-    // 'caller' is a reserved participant name, not a provider key. Passing it
-    // via --models must not smuggle the caller back into a no-participate run.
+    // 'caller' is a reserved participant name, not a provider key. With
+    // --no-participate it must be filtered out of an explicit --models list,
+    // leaving only 'alpha' - one judge, which trips the two-judge minimum.
+    //
+    // The throw IS the proof: had 'caller' been smuggled through as a provider,
+    // the roster would have held 2 entries, cleared the minimum, and run.
+    await expect(
+      debateCommand('x', { models: 'alpha,caller', participate: false })
+    ).rejects.toThrow('A debate needs at least 2 judges');
+  });
+
+  it('filters caller but still runs when two real judges remain', async () => {
     vi.mocked(loadProvider).mockReturnValue({
       name: 'x',
       chat: vi.fn().mockResolvedValue({ content: 'I agree.\nVERDICT: AGREE' }),
     } as any);
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    await debateCommand('x', { models: 'alpha,caller', participate: false });
+    await debateCommand('x', { models: 'alpha,caller,beta', participate: false });
 
-    expect(spy.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('awaiting your turn');
+    const printed = spy.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(printed).not.toContain('awaiting your turn');
+    // 2 judges, not 3 - 'caller' was filtered, and no caller joins the roster.
+    expect(printed).toContain('judges: 2 of 2 responded');
     spy.mockRestore();
   });
 
