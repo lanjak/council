@@ -70,4 +70,15 @@ describe('runReview hard blocks', () => {
     await runReview({ prompt: 'x', config, models: ['alpha'] });
     expect(seen[0]).not.toBe(seen[1]);
   });
+
+  it('keeps the footer out of the synthesis but leaves the raw response intact', async () => {
+    respondWith((k) => `The route is unguarded.\n\n${KEY_LABEL}: ${k}\nBLOCKERS: 1\nBLOCKER: critical | no auth | src/a.ts:1`);
+    const out = await runReview({ prompt: 'x', config });
+
+    expect(out.synthesis).toContain('The route is unguarded.');
+    expect(out.synthesis).not.toContain(KEY_LABEL);
+    expect(out.synthesis).not.toContain('BLOCKERS:');
+    // The raw response is preserved for consumers that want it.
+    expect(out.judges[0].response).toContain(KEY_LABEL);
+  });
 });

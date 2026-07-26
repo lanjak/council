@@ -80,6 +80,22 @@ export function parseHardBlocks(text: string, key: string): BlockParse {
   return { status: 'parsed', blocks };
 }
 
+// Strip the machine footer so the human-facing synthesis does not restate what
+// the structured result already carries. Only safe to call when the footer
+// parsed cleanly - for an unparseable judge the raw tail is the evidence a
+// reader needs to see.
+export function stripBlockFooter(text: string, key: string): string {
+  const normalised = text.replace(/\r\n?/g, '\n');
+  const lines = normalised.split('\n');
+  const keyLine = new RegExp(`^\\s*${escapeRegExp(KEY_LABEL)}:\\s*${escapeRegExp(key)}\\s*$`, 'i');
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (keyLine.test(lines[i])) {
+      return lines.slice(0, i).join('\n').trimEnd();
+    }
+  }
+  return text;
+}
+
 // Field splitting is deliberately forgiving: judges write pipes inside titles
 // (`use foo | bar instead`), so the last field is taken as the location and
 // everything between the severity and it is rejoined as the title.
@@ -131,6 +147,13 @@ const SEVERITY_RANK: Record<Severity, number> = { critical: 0, high: 1 };
 // Salvage from an unparseable judge never sets `blocked`, so that signal stays
 // honest. The finding is not lost either: it lands in diagnosticBlocks and the
 // judge lands in unknownJudges, which a gating consumer already parks on.
+//
+// NOTE for direct callers: a judge with no `blockParse` at all is skipped, not
+// treated as unknown. That is correct for results produced with a `blockKey`,
+// where every successful judge always carries a parse. If you call this with
+// results from a `runCouncil` invocation that had NO `blockKey`, every judge is
+// skipped and you get `blocked: false` - which is indistinguishable from a
+// clean council. Always pass a `blockKey` if you intend to gate on the result.
 export function aggregateBlocks(judges: JudgeResult[]): BlockAggregate {
   const hardBlocks: AttributedHardBlock[] = [];
   const diagnosticBlocks: AttributedHardBlock[] = [];

@@ -19,6 +19,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "prepack": "npm run build",
     "build": "tsc && chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",

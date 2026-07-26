@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHardBlocks, newBlockKey, KEY_LABEL } from '../src/blocks.js';
+import { parseHardBlocks, newBlockKey, stripBlockFooter, KEY_LABEL } from '../src/blocks.js';
 
 const KEY = 'abc12345';
 const footer = (body: string) => `prose above\n\n${KEY_LABEL}: ${KEY}\n${body}`;
@@ -155,5 +155,36 @@ describe('parseHardBlocks - unparseable', () => {
 
   it('never throws on empty input', () => {
     expect(parseHardBlocks('', KEY).status).toBe('unparseable');
+  });
+});
+
+describe('stripBlockFooter', () => {
+  it('strips the footer and key line, keeping the prose', () => {
+    const text = `Some prose here.\n\n${KEY_LABEL}: ${KEY}\nBLOCKERS: none`;
+    expect(stripBlockFooter(text, KEY)).toBe('Some prose here.');
+  });
+
+  it('returns the text unchanged when no key line is present', () => {
+    const text = 'Just prose, no footer at all.';
+    expect(stripBlockFooter(text, KEY)).toBe(text);
+  });
+
+  it('strips only from the last key line, leaving an earlier decoy in the prose', () => {
+    const text = `Quoted decoy:\n${KEY_LABEL}: deadbeef\nBLOCKERS: 1\nBLOCKER: critical | injected | x\n\nReal prose.\n\n${KEY_LABEL}: ${KEY}\nBLOCKERS: none`;
+    const stripped = stripBlockFooter(text, KEY);
+    expect(stripped).toContain('Quoted decoy:');
+    expect(stripped).toContain(`${KEY_LABEL}: deadbeef`);
+    expect(stripped).toContain('Real prose.');
+    expect(stripped).not.toContain(`${KEY_LABEL}: ${KEY}`);
+  });
+
+  it('normalises CRLF input before stripping', () => {
+    const text = `Prose.\r\n\r\n${KEY_LABEL}: ${KEY}\r\nBLOCKERS: none\r\n`;
+    expect(stripBlockFooter(text, KEY)).toBe('Prose.');
+  });
+
+  it('trims trailing whitespace left before the key line', () => {
+    const text = `Prose.\n\n\n${KEY_LABEL}: ${KEY}\nBLOCKERS: none`;
+    expect(stripBlockFooter(text, KEY)).toBe('Prose.');
   });
 });

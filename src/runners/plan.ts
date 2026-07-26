@@ -3,7 +3,7 @@ import { runCouncil } from '../council.js';
 import { synthesize } from '../chairman.js';
 import { buildPrompt } from '../input.js';
 import { CouncilError } from '../errors.js';
-import { newBlockKey, aggregateBlocks } from '../blocks.js';
+import { newBlockKey, aggregateBlocks, stripBlockFooter } from '../blocks.js';
 import { planSystemPrompt } from '../prompts.js';
 import type { CouncilOutput } from '../types.js';
 
@@ -36,11 +36,19 @@ export async function runPlan(opts: PlanOptions): Promise<CouncilOutput> {
     throw new CouncilError('All providers unavailable', 'NO_QUORUM');
   }
 
+  // The judges array keeps the raw response; only the prose synthesis drops the
+  // footer, and only for judges whose footer parsed cleanly.
+  const forSynthesis = judges.map((j) =>
+    j.blockParse?.status === 'parsed' && j.response !== undefined
+      ? { ...j, response: stripBlockFooter(j.response, blockKey) }
+      : j
+  );
+
   return {
     prompt: prompt.text,
     mode: 'plan',
     judges,
-    synthesis: synthesize({ prompt: prompt.text, mode: 'plan', models, systemPrompt }, judges),
+    synthesis: synthesize({ prompt: prompt.text, mode: 'plan', models, systemPrompt }, forSynthesis),
     availableCount,
     totalCount: models.length,
     warnings: prompt.warnings,
