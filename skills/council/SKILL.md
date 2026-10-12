@@ -28,8 +28,9 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
 3. Choose `--max-tokens <n>` per task. Use a small budget for a finished plan
    and a large budget for a codebase scan. It overrides `<PREFIX>_MAX_TOKENS`
    for every judge, including resumed debate turns.
-4. Use `--effort low|medium|high|xhigh` to override the environment. The default
-   is `medium`; `<PREFIX>_EFFORT` overrides `COUNCIL_EFFORT`.
+4. Use `--effort low|medium|high|xhigh` to override the environment.
+   `<PREFIX>_EFFORT` overrides `COUNCIL_EFFORT`. With nothing configured, the
+   request omits effort. Set `COUNCIL_EFFORT=medium` to use medium effort by default.
 5. Return stdout verbatim to the user.
 
 ## Debate vs review/plan

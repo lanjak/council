@@ -11,7 +11,7 @@ It is provider-agnostic. If a provider speaks the OpenAI chat completions API, y
 ## Install
 
 ```sh
-npm install -g council
+npm install -g @lanjak/council
 ```
 
 Or run without installing:
