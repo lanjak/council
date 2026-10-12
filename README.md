@@ -1,23 +1,23 @@
-<h1 align="center">council-axi</h1>
+<h1 align="center">council</h1>
 
 <p align="center">Multi-LLM adversarial review council - an <a href="https://github.com/kunchenguid/axi">AXI</a>.</p>
 
 ---
 
-`council-axi` sends a single prompt to several independent LLM judges and returns a synthesized review. It is useful when you want more than one model to look at a plan, decision, or code change before you act. Output is in [TOON](https://toonformat.dev/) so agents can read it cheaply.
+`council` sends a single prompt to several independent LLM judges and returns a synthesized review. It is useful when you want more than one model to look at a plan, decision, or code change before you act. Output is in [TOON](https://toonformat.dev/) so agents can read it cheaply.
 
 It is provider-agnostic. If a provider speaks the OpenAI chat completions API, you can add it to your council by setting a few environment variables.
 
 ## Install
 
 ```sh
-npm install -g council-axi
+npm install -g council
 ```
 
 Or run without installing:
 
 ```sh
-npx -y council-axi <command>
+npx -y council <command>
 ```
 
 ## Configure providers
@@ -127,7 +127,7 @@ CLAUDE_MODEL=claude-opus-5
 Check which providers are authenticated:
 
 ```sh
-$ council-axi setup
+$ council setup
 providers[2]{name,authenticated,detail}:
   openai,true,OpenAI API key is set
   groq,true,Groq API key is set
@@ -139,27 +139,27 @@ help[2]:
 Run an adversarial review:
 
 ```sh
-$ council-axi review "Should we add a caching layer here?"
+$ council review "Should we add a caching layer here?"
 ```
 
 Or pick a subset:
 
 ```sh
-$ council-axi review "Should we add a caching layer here?" --models openai,groq
+$ council review "Should we add a caching layer here?" --models openai,groq
 ```
 
 Pressure-test a plan:
 
 ```sh
-$ council-axi plan "Should we migrate auth to a separate service?"
+$ council plan "Should we migrate auth to a separate service?"
 ```
 
 Attach files, a directory, or a diff:
 
 ```sh
-$ council-axi review "is this sound?" --file plan.md --file src/
-$ council-axi review "what did I break?" --diff
-$ git diff | council-axi review "check this" --stdin
+$ council review "is this sound?" --file plan.md --file src/
+$ council review "what did I break?" --diff
+$ git diff | council review "check this" --stdin
 ```
 
 Example output:
@@ -182,16 +182,16 @@ synthesis:
   **Key points:**
   - Ship after adding cache invalidation
   - Ship but measure hit ratio first
-help[1]: Run `npx -y council-axi review "<prompt>" --models openai,groq`
+help[1]: Run `npx -y council review "<prompt>" --models openai,groq`
 ```
 
 ## Library usage
 
-council-axi is importable as an ESM library, so a programmatic consumer never
+council is importable as an ESM library, so a programmatic consumer never
 has to shell out or parse stdout.
 
 ```ts
-import { runReview } from 'council-axi';
+import { runReview } from 'council';
 
 const result = await runReview({
   prompt: 'Review this change',
@@ -252,7 +252,7 @@ pausing - use it for unattended runs and from the library, where there is no
 human to take a turn.
 
 ```sh
-$ council-axi debate "Should we add a caching layer here?" --models openai,groq
+$ council debate "Should we add a caching layer here?" --models openai,groq
 ```
 
 Options for `debate "<prompt>"` (same artifact flags as `review`/`plan`):
@@ -287,7 +287,7 @@ The debate runs the other judges' turns normally, then pauses on your turn
 and prints a session id plus the exact command to continue with:
 
 ```sh
-$ council-axi debate "Should we add a caching layer here?" --models openai,groq
+$ council debate "Should we add a caching layer here?" --models openai,groq
 council[debate]: awaiting your turn
 status: awaiting-caller (round 1 of 5, turn 3 of 3)
 session: dbt-a1b2c3
@@ -296,10 +296,10 @@ transcript:
 help[2]:
   It is your turn. Read the transcript above, take a position, attack the
   weakest points of the other judges' latest turns, then respond with:
-  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y council-axi debate turn dbt-a1b2c3 --stdin
+  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y council debate turn dbt-a1b2c3 --stdin
 
 $ echo "I agree the cache adds complexity but the hit ratio data supports it.
-VERDICT: AGREE" | council-axi debate turn dbt-a1b2c3 --stdin
+VERDICT: AGREE" | council debate turn dbt-a1b2c3 --stdin
 council[debate]: "Should we add a caching layer here?"
 judges: 3 of 3 responded
 ...
@@ -334,10 +334,10 @@ raise it for questions worth grinding on.
 ## Attaching artifacts
 
 ```sh
-council-axi review "is this sound?" --file plan.md --file src/
-council-axi review "what did I break?" --diff            # git diff HEAD
-council-axi review "review this range" --diff HEAD~3
-git diff | council-axi review "check this" --stdin
+council review "is this sound?" --file plan.md --file src/
+council review "what did I break?" --diff            # git diff HEAD
+council review "review this range" --diff HEAD~3
+git diff | council review "check this" --stdin
 ```
 
 Files and directories are embedded in the prompt with path labels (remote
@@ -356,7 +356,7 @@ its stdout as an artifact block - for content with no physical file at all
 need to write it to a temp file first just to pass `--file` a path:
 
 ```sh
-council-axi review "..." --file 'cmd:my-notes-tool page get "Projects/x/spec.md"'
+council review "..." --file 'cmd:my-notes-tool page get "Projects/x/spec.md"'
 ```
 
 A failing command is a warning, not a fatal error - the run continues with
@@ -409,24 +409,24 @@ advisory.
 
 ## Agent integration
 
-`council-axi` ships with an installable Agent Skill in `skills/council-axi/SKILL.md`. Copy it into your agent's skill directory, or point your agent at the CLI directly:
+`council` ships with an installable Agent Skill in `skills/council/SKILL.md`. Copy it into your agent's skill directory, or point your agent at the CLI directly:
 
 ```sh
-npx -y council-axi review "..." --models openai,groq
+npx -y council review "..." --models openai,groq
 ```
 
 ## Harness hooks
 
-`council-axi hook <event>` is a portable lifecycle entrypoint any agent
+`council hook <event>` is a portable lifecycle entrypoint any agent
 harness can call. It reads the harness's JSON payload from stdin (or
 `--payload '<json>'`), best-effort, and never hard-fails on unknown shapes.
 
-- `council-axi hook session-start` - prints available providers and usage as
+- `council hook session-start` - prints available providers and usage as
   context. Always exits 0.
-- `council-axi hook post-edit` - records edited file paths for the session.
+- `council hook post-edit` - records edited file paths for the session.
   Always exits 0. Harnesses must wait for this command's exit before firing
   `stop`.
-- `council-axi hook stop` - review gate. If edits are pending, the council
+- `council hook stop` - review gate. If edits are pending, the council
   reviews `git diff HEAD` for those paths. Majority-fail verdict blocks with
   exit 2 and the synthesis on stdout. Anything else exits 0; provider outages
   fail open (edits kept for manual re-review).
@@ -437,14 +437,14 @@ Claude Code / openclaude wiring (`~/.claude/settings.json`):
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "council-axi hook session-start" }] }
+      { "hooks": [{ "type": "command", "command": "council hook session-start" }] }
     ],
     "PostToolUse": [
       { "matcher": "Edit|Write|MultiEdit",
-        "hooks": [{ "type": "command", "command": "council-axi hook post-edit" }] }
+        "hooks": [{ "type": "command", "command": "council hook post-edit" }] }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "council-axi hook stop" }] }
+      { "hooks": [{ "type": "command", "command": "council hook stop" }] }
     ]
   }
 }
