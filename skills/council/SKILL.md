@@ -25,12 +25,14 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
    ```bash
    npx -y @lanjak/council review "<prompt or artifact summary>" --models openai,groq
    ```
-3. Choose `--max-tokens <n>` per task. Use a small budget for a finished plan
-   and a large budget for a codebase scan. It overrides `<PREFIX>_MAX_TOKENS`
+3. Choose a positive integer for `--max-tokens <n>` per task. Use a small
+   budget for a finished plan and a large budget for a codebase scan.
+   It overrides `<PREFIX>_MAX_TOKENS`
    for every judge, including resumed debate turns.
 4. Use `--effort low|medium|high|xhigh` to override the environment.
    `<PREFIX>_EFFORT` overrides `COUNCIL_EFFORT`. With nothing configured, the
    request omits effort. Set `COUNCIL_EFFORT=medium` to use medium effort by default.
+   The model and endpoint must support the selected effort level.
 5. Return stdout verbatim to the user.
 
 ## Debate vs review/plan
@@ -49,10 +51,15 @@ npx -y @lanjak/council debate "<prompt>" --models openai,groq
 
 Each judge's turn must end with `VERDICT: AGREE` or `VERDICT: DISAGREE`;
 consensus requires every active judge to agree on their latest turn. You are
-always in the rotation yourself - the command pauses on your turn with a
+in the rotation yourself by default - the command pauses on your turn with a
 session id and the exact `debate turn <session-id> --stdin` command to
 continue with, and your verdict gates consensus like any judge's. Sessions
 expire 24 hours after creation.
+
+Pass `--no-participate` for unattended debates that never pause for your turn.
+New sessions use `$XDG_STATE_HOME/council/debates` (default:
+`~/.local/state/council/debates`). Sessions from the old `council-axi`
+directory remain readable when no session with the same ID exists in `council`.
 
 ## Output format
 

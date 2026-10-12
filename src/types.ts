@@ -12,7 +12,9 @@ export interface JudgeResult {
 export type Effort = 'low' | 'medium' | 'high' | 'xhigh';
 
 export interface RunControls {
+  /** Per-judge response token cap; overrides provider config when supplied. */
   maxTokens?: number;
+  /** Overrides provider effort; omitted from requests if neither is set. */
   effort?: Effort;
 }
 
