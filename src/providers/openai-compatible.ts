@@ -46,10 +46,11 @@ export class OpenAICompatibleProvider extends LLMProvider {
     // endpoints reject any value but their own default (kimi k3 only accepts
     // 1), so when nothing is configured the field is omitted entirely.
     const temperature = options.temperature ?? this.config.temperature;
+    const effort = options.effort ?? this.config.effort;
     const completion = await this.client.chat.completions.create({
       model: options.model,
       // This SDK predates xhigh; compatible endpoints accept it on the wire.
-      reasoning_effort: (options.effort ?? this.config.effort ?? 'medium') as OpenAI.Chat.ChatCompletionCreateParams['reasoning_effort'],
+      ...(effort !== undefined ? { reasoning_effort: effort as OpenAI.Chat.ChatCompletionCreateParams['reasoning_effort'] } : {}),
       messages,
       ...(temperature !== undefined ? { temperature } : {}),
       max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_OPENAI_MAX_TOKENS,

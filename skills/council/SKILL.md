@@ -23,7 +23,7 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
    - Any OpenAI-compatible provider works the same way.
 2. Run the CLI:
    ```bash
-   npx -y council review "<prompt or artifact summary>" --models openai,groq
+   npx -y @lanjak/council review "<prompt or artifact summary>" --models openai,groq
    ```
 3. Choose `--max-tokens <n>` per task. Use a small budget for a finished plan
    and a large budget for a codebase scan. It overrides `<PREFIX>_MAX_TOKENS`
@@ -43,7 +43,7 @@ depth on a single contested question. Escalate from `review`/`plan` to
 the extra cost.
 
 ```bash
-npx -y council debate "<prompt>" --models openai,groq
+npx -y @lanjak/council debate "<prompt>" --models openai,groq
 ```
 
 Each judge's turn must end with `VERDICT: AGREE` or `VERDICT: DISAGREE`;
@@ -68,7 +68,7 @@ non-empty `unknown` section as "we do not know", not as "clean".
 
 ## Commands
 
-- `npx -y council setup` - check authentication
-- `npx -y council review "..."` - adversarial review
-- `npx -y council plan "..."` - pressure-test a plan
-- `npx -y council debate "..."` - sequential adversarial debate until consensus
+- `npx -y @lanjak/council setup` - check authentication
+- `npx -y @lanjak/council review "..."` - adversarial review
+- `npx -y @lanjak/council plan "..."` - pressure-test a plan
+- `npx -y @lanjak/council debate "..."` - sequential adversarial debate until consensus

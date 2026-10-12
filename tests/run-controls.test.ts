@@ -14,12 +14,12 @@ const env = { COUNCIL_PROVIDERS: 'a,b', A_API_KEY: 'key', A_MODEL: 'a', B_API_KE
 describe('run controls', () => {
   it('renames the package and CLI', () => {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-    expect(pkg.name).toBe('council');
+    expect(pkg.name).toBe('@lanjak/council');
     expect(pkg.bin.council).toBe('dist/cli.js');
     expect(readFileSync('src/cli.ts', 'utf8')).toContain(".name('council')");
   });
-  it('defaults effort to medium and honors provider over global env', () => {
-    expect(loadConfig(env).providers.a.effort).toBe('medium');
+  it('omits unconfigured effort and honors provider over global env', () => {
+    expect(loadConfig(env).providers.a.effort).toBeUndefined();
     const config = loadConfig({ ...env, COUNCIL_EFFORT: 'high', A_EFFORT: 'low' });
     expect(config.providers.a.effort).toBe('low');
     expect(config.providers.b.effort).toBe('high');
@@ -37,12 +37,14 @@ describe('run controls', () => {
     expect(chat).toHaveBeenCalledTimes(2);
     for (const [call] of chat.mock.calls) expect(call).toMatchObject({ maxTokens: 1234, effort: 'xhigh' });
   });
-  it('sends default, configured and per-call effort in the OpenAI body', async () => {
-    for (const [configured, override, expected] of [[undefined, undefined, 'medium'], ['low', undefined, 'low'], ['low', 'xhigh', 'xhigh']] as const) {
+  it('sends effort only when configured in the OpenAI body', async () => {
+    for (const [configured, override, expected] of [[undefined, undefined, undefined], ['low', undefined, 'low'], ['low', 'xhigh', 'xhigh'], [undefined, 'high', 'high']] as const) {
       const provider = new OpenAICompatibleProvider({ name: 'a', displayName: 'A', apiKey: 'key', baseURL: 'https://example.com', effort: configured, maxTokens: 900 });
       const create = vi.spyOn(provider['client'].chat.completions, 'create').mockResolvedValue({ choices: [] } as any);
       await provider.chat({ prompt: 'q', model: 'm', effort: override, maxTokens: 1234 });
-      expect(create.mock.calls[0][0]).toMatchObject({ reasoning_effort: expected, max_tokens: 1234 });
+      expect(create.mock.calls[0][0]).toMatchObject({ max_tokens: 1234 });
+      if (expected === undefined) expect(create.mock.calls[0][0]).not.toHaveProperty('reasoning_effort');
+      else expect(create.mock.calls[0][0]).toHaveProperty('reasoning_effort', expected);
     }
   });
 });
