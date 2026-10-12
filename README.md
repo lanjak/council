@@ -49,7 +49,10 @@ Required for each provider:
 Optional:
 
 - `<KEY>_DISPLAY_NAME` - human-readable name shown in output (defaults to the key)
-- `<KEY>_MAX_TOKENS` - response token cap per call (defaults to 32768)
+- `<KEY>_MAX_TOKENS` - response token cap per call (defaults to 32768 for
+  OpenAI-compatible providers and 8192 for Anthropic providers)
+- `<KEY>_EFFORT` - reasoning effort: `low`, `medium`, `high`, or `xhigh`;
+  overrides `COUNCIL_EFFORT` when set
 - `<KEY>_TEMPERATURE` - sampling temperature; when unset the field is omitted
   entirely and the provider's own default applies (some endpoints reject any
   explicit value - Kimi's k3 only accepts 1)
@@ -82,8 +85,11 @@ and endpoint must support the selected level. Paused debates retain per-run
 controls when resumed.
 
 New state is written under `$XDG_STATE_HOME/council` (default:
-`~/.local/state/council`). Existing `council-axi` debate sessions remain readable;
-hook edit tracking reads both locations. Environment variable names stay the same.
+`~/.local/state/council`). Debate sessions use its `debates/` subdirectory.
+Session loading checks `council` first, then falls back to `council-axi` if
+the new session file is absent. Hook edit tracking reads both locations.
+Session deletion and expiry cleanup cover both locations.
+Environment variable names stay the same.
 
 ### Example providers
 
@@ -221,6 +227,8 @@ import { runReview } from '@lanjak/council';
 const result = await runReview({
   prompt: 'Review this change',
   diff: { range: 'main...HEAD' },
+  maxTokens: 8192,
+  effort: 'medium',
 });
 
 if (result.blocked) {
@@ -255,6 +263,13 @@ if (result.blocked || result.unknownJudges.length > 0 ||
 `loadConfig` is exported but **unstable**: configuration is being reworked and
 its shape will change.
 
+`runReview`, `runPlan`, and `runDebate` accept the exported `RunControls`
+fields: `maxTokens` (a number) and `effort` (the exported `Effort` type).
+These fields override each provider's configuration. When omitted, provider
+settings and token defaults apply; effort is omitted if unconfigured.
+For library debates, pass these controls in `DebateRunOptions` on each call,
+including calls that resume a debate.
+
 ## Debate mode
 
 `review` and `plan` ask judges independently, in parallel, and synthesize the
@@ -284,6 +299,8 @@ Options for `debate "<prompt>"` (same artifact flags as `review`/`plan`):
 
 - `-m, --models <models>` - comma-separated provider list
 - `--max-rounds <n>` - maximum debate rounds (default: 5)
+- `--max-tokens <n>` - positive token budget for each judge call
+- `--effort <level>` - `low`, `medium`, `high`, or `xhigh`; overrides env settings
 - `--full` - include the complete round-by-round transcript in the output
 - `-f, --file <path>` - attach a file or directory (repeatable)
 - `--diff [range]` - attach git diff (default: HEAD)

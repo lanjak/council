@@ -1,6 +1,6 @@
 ---
 description: Run a sequential adversarial debate between LLM judges until consensus
-argument-hint: '<prompt> [--models <providers>] [--max-rounds <n>]'
+argument-hint: '<prompt> [--models <providers>] [--max-rounds <n>] [--max-tokens <n>] [--effort <level>]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)
 ---
@@ -19,6 +19,13 @@ node /home/rufi/projects/council/dist/cli.js debate "$ARGUMENTS"
 
 Options:
 
+- `--max-tokens <n>` - positive token budget for each judge call. Choose a small
+  budget for a finished plan and a large budget for a codebase scan.
+- `--effort <level>` - `low`, `medium`, `high`, or `xhigh`. Overrides
+  `<PREFIX>_EFFORT`, which overrides `COUNCIL_EFFORT`. If none is set, effort
+  is omitted from the request.
+- Set these controls when starting a debate. Paused sessions retain them
+  for `debate turn` calls.
 - `--no-participate` - judges only; never pauses for your turn. Use for
   unattended runs where there is no human to take a turn.
 
