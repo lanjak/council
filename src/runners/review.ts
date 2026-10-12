@@ -5,9 +5,9 @@ import { buildPrompt } from '../input.js';
 import { CouncilError } from '../errors.js';
 import { newBlockKey, aggregateBlocks, stripBlockFooter } from '../blocks.js';
 import { reviewSystemPrompt } from '../prompts.js';
-import type { CouncilOutput } from '../types.js';
+import type { CouncilOutput, RunControls } from '../types.js';
 
-export interface ReviewOptions {
+export interface ReviewOptions extends RunControls {
   prompt: string;
   models?: string[];
   config?: CouncilConfig;
@@ -33,6 +33,8 @@ export async function runReview(opts: ReviewOptions): Promise<CouncilOutput> {
     models,
     systemPrompt,
     blockKey,
+    maxTokens: opts.maxTokens,
+    effort: opts.effort,
   });
   const availableCount = judges.filter((j) => j.status === 'success').length;
   if (availableCount === 0) {

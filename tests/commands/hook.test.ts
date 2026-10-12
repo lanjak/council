@@ -91,7 +91,7 @@ describe('hookCommand', () => {
     expect(process.exitCode).toBe(0);
     expect(logSpy).not.toHaveBeenCalled();
 
-    const stateFile = path.join(dir, 'council-axi', 'claude-code-s1.jsonl');
+    const stateFile = path.join(dir, 'council', 'claude-code-s1.jsonl');
     const lines = fs.readFileSync(stateFile, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(2);
     expect(lines[0]).toContain('/proj/a.ts');
@@ -114,7 +114,7 @@ describe('hookCommand', () => {
 });
 
 function seedEdits(key: string, files: string[]) {
-  const stateDir = path.join(dir, 'council-axi');
+  const stateDir = path.join(dir, 'council');
   fs.mkdirSync(stateDir, { recursive: true });
   fs.writeFileSync(
     path.join(stateDir, `${key}.jsonl`),
@@ -166,7 +166,7 @@ describe('hookCommand stop gate', () => {
     expect(process.exitCode).toBe(2);
     expect(logSpy.mock.calls.flat().join('\n')).toContain('VERDICT: fail');
     expect(errSpy.mock.calls.flat().join(' ')).toContain('fail');
-    expect(fs.existsSync(path.join(dir, 'council-axi', 'claude-code-g1.jsonl'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(false);
   });
 
   it('passes (exit 0) when fails are not a majority and clears state', async () => {
@@ -179,7 +179,7 @@ describe('hookCommand stop gate', () => {
     await hookCommand('stop', { payload });
 
     expect(process.exitCode).toBe(0);
-    expect(fs.existsSync(path.join(dir, 'council-axi', 'claude-code-g1.jsonl'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(false);
   });
 
   it('keeps the block verdict (exit 2, synthesis, no gate_error) even when clearSession throws', async () => {
@@ -232,7 +232,7 @@ describe('hookCommand stop gate', () => {
 
     expect(process.exitCode).toBe(0);
     expect(logSpy.mock.calls.flat().join('\n')).toContain('gate_error');
-    expect(fs.existsSync(path.join(dir, 'council-axi', 'claude-code-g1.jsonl'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(true);
   });
 
   it('exits 0 and clears state when edits are pending but the diff is empty, without calling runCouncil', async () => {
@@ -244,7 +244,7 @@ describe('hookCommand stop gate', () => {
     expect(process.exitCode).toBe(0);
     expect(runCouncil).not.toHaveBeenCalled();
     expect(clearSession).toHaveBeenCalled();
-    expect(fs.existsSync(path.join(dir, 'council-axi', 'claude-code-g1.jsonl'))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(false);
   });
 
   it('fails open on an internal error and keeps state', async () => {
@@ -255,6 +255,6 @@ describe('hookCommand stop gate', () => {
 
     expect(process.exitCode).toBe(0);
     expect(logSpy.mock.calls.flat().join('\n')).toContain('gate_error');
-    expect(fs.existsSync(path.join(dir, 'council-axi', 'claude-code-g1.jsonl'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(true);
   });
 });

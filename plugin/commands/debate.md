@@ -5,7 +5,7 @@ disable-model-invocation: true
 allowed-tools: Bash(node:*)
 ---
 
-Run a council debate through the council-axi CLI.
+Run a council debate through the council CLI.
 
 Raw arguments: `$ARGUMENTS`
 
@@ -14,7 +14,7 @@ inlining the path into the prompt.
 
 Run:
 ```bash
-node /home/rufi/projects/council-axi/dist/cli.js debate "$ARGUMENTS"
+node /home/rufi/projects/council/dist/cli.js debate "$ARGUMENTS"
 ```
 
 Options:

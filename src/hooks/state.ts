@@ -21,7 +21,7 @@ export function resolveSessionKey(
   const cwd = payload.cwd ?? process.cwd();
   const hash = crypto.createHash('sha1').update(cwd).digest('hex').slice(0, 8);
   warn(
-    `council-axi: session id missing from hook payload, using cwd-based key; ` +
+    `council: session id missing from hook payload, using cwd-based key; ` +
     `edit tracking is shared across sessions in ${cwd}`
   );
   return `${harness}-cwd-${hash}`;
@@ -41,24 +41,25 @@ export function recordEdit(key: string, file: string, cwd: string, env: NodeJS.P
 }
 
 export function pendingEdits(key: string, env: NodeJS.ProcessEnv = process.env): string[] {
-  const target = stateFilePath(key, env);
-  if (!fs.existsSync(target)) return [];
-
+  const targets = [stateFilePath(key, env), stateFilePath(key, env, 'council-axi')];
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const line of fs.readFileSync(target, 'utf8').split('\n')) {
-    if (line.trim().length === 0) continue;
-    let entry: StateEntry;
-    try {
-      const parsed: unknown = JSON.parse(line);
-      entry = parsed as StateEntry;
-      if (typeof entry.file !== 'string') continue;
-    } catch {
-      continue; // killed-process partial write
-    }
-    if (!seen.has(entry.file)) {
-      seen.add(entry.file);
-      out.push(entry.file);
+  for (const target of targets) {
+    if (!fs.existsSync(target)) continue;
+    for (const line of fs.readFileSync(target, 'utf8').split('\n')) {
+      if (line.trim().length === 0) continue;
+      let entry: StateEntry;
+      try {
+        const parsed: unknown = JSON.parse(line);
+        entry = parsed as StateEntry;
+        if (typeof entry.file !== 'string') continue;
+      } catch {
+        continue; // killed-process partial write
+      }
+      if (!seen.has(entry.file)) {
+        seen.add(entry.file);
+        out.push(entry.file);
+      }
     }
   }
   return out;
@@ -66,13 +67,14 @@ export function pendingEdits(key: string, env: NodeJS.ProcessEnv = process.env):
 
 export function clearSession(key: string, env: NodeJS.ProcessEnv = process.env): void {
   fs.rmSync(stateFilePath(key, env), { force: true });
+  fs.rmSync(stateFilePath(key, env, 'council-axi'), { force: true });
 }
 
-export function stateFilePath(key: string, env: NodeJS.ProcessEnv = process.env): string {
+export function stateFilePath(key: string, env: NodeJS.ProcessEnv = process.env, project = 'council'): string {
   const base = env.XDG_STATE_HOME && env.XDG_STATE_HOME.length > 0
     ? env.XDG_STATE_HOME
     : path.join(os.homedir(), '.local', 'state');
-  return path.join(base, 'council-axi', `${sanitize(key)}.jsonl`);
+  return path.join(base, project, `${sanitize(key)}.jsonl`);
 }
 
 function sanitize(text: string): string {

@@ -1,11 +1,10 @@
-import type { ProviderConfig } from '../types.js';
+import type { ProviderConfig, RunControls } from '../types.js';
 
-export interface ChatOptions {
+export interface ChatOptions extends RunControls {
   prompt: string;
   system?: string;
   model: string;
   temperature?: number;
-  maxTokens?: number;
   jsonMode?: boolean;
 }
 

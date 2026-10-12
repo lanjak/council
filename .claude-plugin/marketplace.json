@@ -1,18 +1,18 @@
 {
-  "name": "council-axi",
+  "name": "council",
   "owner": {
     "name": "lanjak"
   },
   "metadata": {
-    "description": "Multi-LLM adversarial review council via the council-axi CLI",
-    "version": "0.4.2"
+    "description": "Multi-LLM adversarial review council via the council CLI",
+    "version": "0.5.0"
   },
   "plugins": [
     {
-      "name": "council-axi",
+      "name": "council",
       "source": "./plugin",
-      "description": "Run a multi-LLM adversarial review council via the council-axi CLI",
-      "version": "0.4.2",
+      "description": "Run a multi-LLM adversarial review council via the council CLI",
+      "version": "0.5.0",
       "author": {
         "name": "lanjak"
       },

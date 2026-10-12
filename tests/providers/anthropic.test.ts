@@ -20,6 +20,19 @@ function mockStream(provider: AnthropicProvider, message: unknown) {
 }
 
 describe('AnthropicProvider', () => {
+  it.each(['low', 'medium', 'high', 'xhigh'] as const)('sends supported effort %s and per-call token budget', async (effort) => {
+    const provider = new AnthropicProvider({ ...config, effort: 'low', maxTokens: 900 });
+    const stream = mockStream(provider, { content: [], usage: { input_tokens: 0, output_tokens: 0 } });
+    await provider.chat({ prompt: 'q', model: 'm', effort, maxTokens: 1234 });
+    expect(stream.mock.calls[0][0]).toMatchObject({ output_config: { effort }, max_tokens: 1234 });
+  });
+
+  it('defaults effort to medium', async () => {
+    const provider = new AnthropicProvider(config);
+    const stream = mockStream(provider, { content: [], usage: { input_tokens: 0, output_tokens: 0 } });
+    await provider.chat({ prompt: 'q', model: 'm' });
+    expect(stream.mock.calls[0][0].output_config).toEqual({ effort: 'medium' });
+  });
   it('returns chat content from a single text block', async () => {
     const provider = new AnthropicProvider(config);
     mockStream(provider, {

@@ -1,4 +1,4 @@
-import type { ProviderConfig } from './types.js';
+import type { ProviderConfig, Effort } from './types.js';
 import { CouncilError } from './errors.js';
 
 export interface CouncilConfig {
@@ -7,6 +7,7 @@ export interface CouncilConfig {
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): CouncilConfig {
   const providers: Record<string, ProviderConfig> = {};
+  const defaultEffort = parseEffort(env.COUNCIL_EFFORT ?? 'medium', 'COUNCIL_EFFORT');
 
   const configured = env.COUNCIL_PROVIDERS?.split(',').map((p) => p.trim()).filter(Boolean) ?? [];
 
@@ -27,12 +28,37 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       model,
       displayName,
       maxTokens,
+      effort: env[`${prefix}_EFFORT`] === undefined
+        ? defaultEffort
+        : parseEffort(env[`${prefix}_EFFORT`]!, `${prefix}_EFFORT`),
       temperature,
       kind,
     };
   }
 
   return { providers };
+}
+
+export function parseEffort(value: string, source = '--effort'): Effort {
+  if (value === 'low' || value === 'medium' || value === 'high' || value === 'xhigh') return value;
+  throw new CouncilError(`${source} must be low|medium|high|xhigh, got "${value}"`, 'BAD_EFFORT');
+}
+
+export interface RunControlFlags {
+  maxTokens?: string;
+  effort?: string;
+}
+
+export function parseRunControls(options: RunControlFlags) {
+  let maxTokens: number | undefined;
+  if (options.maxTokens !== undefined) {
+    const raw = options.maxTokens.trim();
+    maxTokens = Number(raw);
+    if (!/^\d+$/.test(raw) || !Number.isSafeInteger(maxTokens) || maxTokens < 1) {
+      throw new CouncilError(`--max-tokens must be a positive integer, got "${options.maxTokens}"`, 'BAD_ARG');
+    }
+  }
+  return { maxTokens, effort: options.effort === undefined ? undefined : parseEffort(options.effort) };
 }
 
 function capitalize(text: string): string {
