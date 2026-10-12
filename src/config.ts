@@ -7,7 +7,9 @@ export interface CouncilConfig {
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): CouncilConfig {
   const providers: Record<string, ProviderConfig> = {};
-  const defaultEffort = parseEffort(env.COUNCIL_EFFORT ?? 'medium', 'COUNCIL_EFFORT');
+  const defaultEffort = env.COUNCIL_EFFORT === undefined
+    ? undefined
+    : parseEffort(env.COUNCIL_EFFORT, 'COUNCIL_EFFORT');
 
   const configured = env.COUNCIL_PROVIDERS?.split(',').map((p) => p.trim()).filter(Boolean) ?? [];
 

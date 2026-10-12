@@ -41,7 +41,7 @@ program
   .description('Run an adversarial review of an artifact or question')
   .option('-m, --models <models>', 'Comma-separated provider list')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
-  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; default: medium)')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
@@ -55,7 +55,7 @@ program
   .description('Pressure-test a plan or decision')
   .option('-m, --models <models>', 'Comma-separated provider list')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
-  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; default: medium)')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
@@ -73,7 +73,7 @@ debate
   .command('run <prompt>', { isDefault: true, hidden: true })
   .option('-m, --models <models>', 'Comma-separated provider list')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
-  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; default: medium)')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('--max-rounds <n>', 'Maximum debate rounds (default: 5)')
   .option('--full', 'Include the complete round-by-round transcript')
   .option('--no-participate', 'Judges only; never pause for your turn (for unattended runs)')
@@ -113,7 +113,7 @@ main().catch((err) => {
     if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
       process.exit(0);
     }
-    console.log(`${err.message.trim()}\nhelp: npx -y council --help`);
+    console.log(`${err.message.trim()}\nhelp: npx -y @lanjak/council --help`);
     process.exit(2);
   }
   console.log(formatError(err));

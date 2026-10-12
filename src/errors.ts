@@ -10,10 +10,10 @@ export class CouncilError extends Error {
 
 export function formatError(error: unknown): string {
   if (error instanceof CouncilError) {
-    return `error: ${error.code}: ${error.message}\nhelp: npx -y council setup`;
+    return `error: ${error.code}: ${error.message}\nhelp: npx -y @lanjak/council setup`;
   }
   if (error instanceof Error) {
-    return `error: ${error.message}\nhelp: npx -y council --help`;
+    return `error: ${error.message}\nhelp: npx -y @lanjak/council --help`;
   }
-  return `error: ${String(error)}\nhelp: npx -y council --help`;
+  return `error: ${String(error)}\nhelp: npx -y @lanjak/council --help`;
 }

@@ -17,7 +17,7 @@ npm install -g council
 Or run without installing:
 
 ```sh
-npx -y council <command>
+npx -y @lanjak/council <command>
 ```
 
 ## Configure providers
@@ -74,7 +74,8 @@ council debate "Choose an approach" --max-tokens 8192 --effort medium --no-parti
 ```
 
 Reasoning effort accepts `low`, `medium`, `high`, or `xhigh`. Precedence is
-`--effort`, then `<PREFIX>_EFFORT`, then `COUNCIL_EFFORT`, then `medium`.
+`--effort`, then `<PREFIX>_EFFORT`, then `COUNCIL_EFFORT`. With nothing configured,
+the request omits effort. Set `COUNCIL_EFFORT=medium` to use medium effort by default.
 Invalid configured levels fail at config load. OpenAI-compatible requests send
 `reasoning_effort`; Anthropic requests send `output_config.effort`. The model
 and endpoint must support the selected level. Paused debates retain per-run
@@ -206,7 +207,7 @@ synthesis:
   **Key points:**
   - Ship after adding cache invalidation
   - Ship but measure hit ratio first
-help[1]: Run `npx -y council review "<prompt>" --models openai,groq`
+help[1]: Run `npx -y @lanjak/council review "<prompt>" --models openai,groq`
 ```
 
 ## Library usage
@@ -215,7 +216,7 @@ council is importable as an ESM library, so a programmatic consumer never
 has to shell out or parse stdout.
 
 ```ts
-import { runReview } from 'council';
+import { runReview } from '@lanjak/council';
 
 const result = await runReview({
   prompt: 'Review this change',
@@ -320,7 +321,7 @@ transcript:
 help[2]:
   It is your turn. Read the transcript above, take a position, attack the
   weakest points of the other judges' latest turns, then respond with:
-  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y council debate turn dbt-a1b2c3 --stdin
+  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y @lanjak/council debate turn dbt-a1b2c3 --stdin
 
 $ echo "I agree the cache adds complexity but the hit ratio data supports it.
 VERDICT: AGREE" | council debate turn dbt-a1b2c3 --stdin
@@ -436,7 +437,7 @@ advisory.
 `council` ships with an installable Agent Skill in `skills/council/SKILL.md`. Copy it into your agent's skill directory, or point your agent at the CLI directly:
 
 ```sh
-npx -y council review "..." --models openai,groq
+npx -y @lanjak/council review "..." --models openai,groq
 ```
 
 ## Harness hooks
