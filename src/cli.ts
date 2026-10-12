@@ -18,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8')) as { version: string };
 
 program
-  .name('council-axi')
+  .name('council')
   .description('Multi-LLM adversarial review council - an AXI')
   .version(pkg.version)
   .exitOverride()
@@ -40,6 +40,8 @@ program
   .command('review <prompt>')
   .description('Run an adversarial review of an artifact or question')
   .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
@@ -52,6 +54,8 @@ program
   .command('plan <prompt>')
   .description('Pressure-test a plan or decision')
   .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
   .option('--diff [range]', 'Attach git diff (default: HEAD)')
   .option('--stdin', 'Attach artifact content from stdin')
@@ -62,11 +66,14 @@ program
 
 const debate = program
   .command('debate')
-  .description('Run a sequential adversarial debate until consensus or round cap');
+  .description('Run a sequential adversarial debate until consensus or round cap')
+  .addHelpText('after', '\nRun options: --max-tokens <n> (positive per-judge budget; small for a finished plan, large for a codebase scan), --effort <level> (low|medium|high|xhigh).\nWith nothing configured, the request omits effort. Set COUNCIL_EFFORT=medium to use medium effort by default.\nUse council debate run --help for all run options.');
 
 debate
   .command('run <prompt>', { isDefault: true, hidden: true })
   .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
+  .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('--max-rounds <n>', 'Maximum debate rounds (default: 5)')
   .option('--full', 'Include the complete round-by-round transcript')
   .option('--no-participate', 'Judges only; never pause for your turn (for unattended runs)')
@@ -106,7 +113,7 @@ main().catch((err) => {
     if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
       process.exit(0);
     }
-    console.log(`${err.message.trim()}\nhelp: npx -y council-axi --help`);
+    console.log(`${err.message.trim()}\nhelp: npx -y @lanjak/council --help`);
     process.exit(2);
   }
   console.log(formatError(err));

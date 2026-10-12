@@ -25,6 +25,8 @@ export type {
   DebateRound,
   DebateSession,
   DebateTurn,
+  Effort,
+  RunControls,
   HardBlock,
   JudgeResult,
   ProviderConfig,

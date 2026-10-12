@@ -1,4 +1,4 @@
-import { loadConfig, resolveModels } from '../config.js';
+import { loadConfig, resolveModels, parseRunControls, type RunControlFlags } from '../config.js';
 import { runDebate, activeParticipants, CALLER } from '../debate/loop.js';
 import { buildDebateOutput, renderDebateTOON, renderDebatePaused } from '../debate/render.js';
 import { cleanupExpired, newSessionId, saveSession, loadSession, deleteSession } from '../debate/session.js';
@@ -10,7 +10,7 @@ import { buildPrompt, parseModelList } from '../input.js';
 import { readArtifactInput, type ArtifactOptions } from './review.js';
 import type { DebateSession, DebateTurn } from '../types.js';
 
-export interface DebateCommandOptions extends ArtifactOptions {
+export interface DebateCommandOptions extends ArtifactOptions, RunControlFlags {
   models?: string;
   maxRounds?: string;
   full?: boolean;
@@ -26,6 +26,7 @@ function parseModels(raw: string | undefined, providers: Parameters<typeof resol
 }
 
 export async function debateCommand(prompt: string, options: DebateCommandOptions): Promise<void> {
+  const controls = parseRunControls(options);
   cleanupExpired();
   const config = loadConfig();
   const models = parseModels(options.models, config.providers);
@@ -45,6 +46,7 @@ export async function debateCommand(prompt: string, options: DebateCommandOption
     models,
     participate,
     maxRounds,
+    ...controls,
   });
 
   if (progress.status === 'awaiting-caller') {
@@ -54,6 +56,7 @@ export async function debateCommand(prompt: string, options: DebateCommandOption
       prompt: fullPrompt.text,
       models: [...models, CALLER],
       maxRounds,
+      ...controls,
       turns: progress.turns,
       nextTurn: progress.nextTurn!,
       warnings: fullPrompt.warnings,
@@ -103,7 +106,7 @@ export async function debateTurnCommand(
   const session = loadSession(sessionId);
   if (session.nextTurn.participant !== CALLER) {
     throw new CouncilError(
-      `It is not the caller's turn in session ${sessionId}; the state file may be damaged. Run: council-axi debate abort ${sessionId}`,
+      `It is not the caller's turn in session ${sessionId}; the state file may be damaged. Run: council debate abort ${sessionId}`,
       'NOT_YOUR_TURN'
     );
   }
@@ -123,7 +126,7 @@ export async function debateTurnCommand(
   const next = participantAfterCaller(session, turns);
   const progress = await runDebate(
     config,
-    { prompt: session.prompt, models: judges, participate: true, maxRounds: session.maxRounds },
+    { prompt: session.prompt, models: judges, participate: true, maxRounds: session.maxRounds, maxTokens: session.maxTokens, effort: session.effort },
     next ? { turns, nextTurn: next } : { turns, nextTurn: { round: session.maxRounds + 1, participant: CALLER, order: [] } }
   );
 

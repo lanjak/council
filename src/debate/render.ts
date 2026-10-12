@@ -90,7 +90,7 @@ export function renderDebateTOON(output: DebateOutput, opts: { full: boolean }):
   const providers = output.judges.filter((j) => j.provider !== CALLER);
   const help: string[] = [];
   if (output.consensus) {
-    help.push(`Run \`npx -y council-axi debate "<prompt>" --models ${providers.map((j) => j.provider).join(',')}\``);
+    help.push(`Run \`npx -y @lanjak/council debate "<prompt>" --models ${providers.map((j) => j.provider).join(',')}\``);
   } else {
     const dissenters = providers.filter((j) => j.verdict !== 'agree').map((j) => j.provider);
     help.push('No consensus - continue with more rounds: rerun with --max-rounds ' + (output.maxRounds + 3));
@@ -126,7 +126,7 @@ export function renderDebatePaused(args: {
   lines.push('help[2]:');
   lines.push('  It is your turn. Read the transcript above, take a position, attack the');
   lines.push(`  weakest points of the other judges' latest turns, then respond with:`);
-  lines.push(`  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y council-axi debate turn ${args.sessionId} --stdin`);
+  lines.push(`  echo "<your turn, ending with VERDICT: AGREE or VERDICT: DISAGREE>" | npx -y @lanjak/council debate turn ${args.sessionId} --stdin`);
   return lines.join('\n');
 }
 
