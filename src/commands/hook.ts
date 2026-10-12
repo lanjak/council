@@ -23,7 +23,7 @@ export async function hookCommand(
 ): Promise<void> {
   if (!event || !EVENTS.includes(event as HookEvent)) {
     console.error(
-      `council-axi hook: unknown event "${event ?? '(none)'}"\navailable events: ${EVENTS.join(', ')}`
+      `council hook: unknown event "${event ?? '(none)'}"\navailable events: ${EVENTS.join(', ')}`
     );
     process.exitCode = 1;
     return;
@@ -49,7 +49,7 @@ async function sessionStart(_rawPayload: string): Promise<void> {
       return; // nothing configured: stay silent, exit 0
     }
     console.log(`council[available]: providers ${providers.join(',')} | review gate active`);
-    console.log('help: run `council-axi review "<question>" --diff` for a council review');
+    console.log('help: run `council review "<question>" --diff` for a council review');
   } catch {
     // A context hook must never break session startup.
   }
@@ -64,7 +64,7 @@ async function postEdit(rawPayload: string): Promise<void> {
       recordEdit(key, file, cwd);
     }
   } catch (err) {
-    console.error(`council-axi hook post-edit: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`council hook post-edit: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -149,7 +149,7 @@ async function stop(rawPayload: string): Promise<void> {
 
     if (decision.outcome === 'block') {
       console.log(synthesis);
-      console.error(`council-axi gate: blocked - ${decision.reason}${warningsSuffix}`);
+      console.error(`council gate: blocked - ${decision.reason}${warningsSuffix}`);
       process.exitCode = 2;
       safelyClearSession(key);
       return;

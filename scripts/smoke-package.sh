@@ -18,7 +18,7 @@ JSON
 npm install --silent --no-audit --no-fund "$WORK/$TARBALL"
 
 cat > smoke.mjs <<'JS'
-import { runReview, parseHardBlocks, KEY_LABEL, exitCodeFor } from 'council-axi';
+import { runReview, parseHardBlocks, KEY_LABEL, exitCodeFor } from '@lanjak/council';
 
 if (typeof runReview !== 'function') throw new Error('runReview is not exported');
 if (typeof exitCodeFor !== 'function') throw new Error('exitCodeFor is not exported');

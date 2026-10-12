@@ -1,6 +1,6 @@
 ---
-name: council-axi
-description: Run a multi-LLM adversarial review council via the council-axi CLI
+name: council
+description: Run a multi-LLM adversarial review council via the council CLI
 metadata:
   type: tool
   user-invocable: false
@@ -23,9 +23,17 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
    - Any OpenAI-compatible provider works the same way.
 2. Run the CLI:
    ```bash
-   npx -y council-axi review "<prompt or artifact summary>" --models openai,groq
+   npx -y @lanjak/council review "<prompt or artifact summary>" --models openai,groq
    ```
-3. Return stdout verbatim to the user.
+3. Choose a positive integer for `--max-tokens <n>` per task. Use a small
+   budget for a finished plan and a large budget for a codebase scan.
+   It overrides `<PREFIX>_MAX_TOKENS`
+   for every judge, including resumed debate turns.
+4. Use `--effort low|medium|high|xhigh` to override the environment.
+   `<PREFIX>_EFFORT` overrides `COUNCIL_EFFORT`. With nothing configured, the
+   request omits effort. Set `COUNCIL_EFFORT=medium` to use medium effort by default.
+   The model and endpoint must support the selected effort level.
+5. Return stdout verbatim to the user.
 
 ## Debate vs review/plan
 
@@ -38,15 +46,20 @@ depth on a single contested question. Escalate from `review`/`plan` to
 the extra cost.
 
 ```bash
-npx -y council-axi debate "<prompt>" --models openai,groq
+npx -y @lanjak/council debate "<prompt>" --models openai,groq
 ```
 
 Each judge's turn must end with `VERDICT: AGREE` or `VERDICT: DISAGREE`;
 consensus requires every active judge to agree on their latest turn. You are
-always in the rotation yourself - the command pauses on your turn with a
+in the rotation yourself by default - the command pauses on your turn with a
 session id and the exact `debate turn <session-id> --stdin` command to
 continue with, and your verdict gates consensus like any judge's. Sessions
 expire 24 hours after creation.
+
+Pass `--no-participate` for unattended debates that never pause for your turn.
+New sessions use `$XDG_STATE_HOME/council/debates` (default:
+`~/.local/state/council/debates`). Sessions from the old `council-axi`
+directory remain readable when no session with the same ID exists in `council`.
 
 ## Output format
 
@@ -63,7 +76,7 @@ non-empty `unknown` section as "we do not know", not as "clean".
 
 ## Commands
 
-- `npx -y council-axi setup` - check authentication
-- `npx -y council-axi review "..."` - adversarial review
-- `npx -y council-axi plan "..."` - pressure-test a plan
-- `npx -y council-axi debate "..."` - sequential adversarial debate until consensus
+- `npx -y @lanjak/council setup` - check authentication
+- `npx -y @lanjak/council review "..."` - adversarial review
+- `npx -y @lanjak/council plan "..."` - pressure-test a plan
+- `npx -y @lanjak/council debate "..."` - sequential adversarial debate until consensus
