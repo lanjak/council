@@ -67,7 +67,7 @@ program
 const debate = program
   .command('debate')
   .description('Run a sequential adversarial debate until consensus or round cap')
-  .addHelpText('after', '\nRun options: --max-tokens <n> (positive per-judge budget; small for a finished plan, large for a codebase scan), --effort <level> (low|medium|high|xhigh; default: medium).\nUse council debate run --help for all run options.');
+  .addHelpText('after', '\nRun options: --max-tokens <n> (positive per-judge budget; small for a finished plan, large for a codebase scan), --effort <level> (low|medium|high|xhigh).\nWith nothing configured, the request omits effort. Set COUNCIL_EFFORT=medium to use medium effort by default.\nUse council debate run --help for all run options.');
 
 debate
   .command('run <prompt>', { isDefault: true, hidden: true })
