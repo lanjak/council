@@ -11,11 +11,11 @@ export function newSessionId(): string {
   return `dbt-${crypto.randomBytes(3).toString('hex')}`;
 }
 
-export function sessionPath(id: string, env: NodeJS.ProcessEnv = process.env): string {
+export function sessionPath(id: string, env: NodeJS.ProcessEnv = process.env, project = 'council'): string {
   const base = env.XDG_STATE_HOME && env.XDG_STATE_HOME.length > 0
     ? env.XDG_STATE_HOME
     : path.join(os.homedir(), '.local', 'state');
-  return path.join(base, 'council-axi', 'debates', `${id.replace(/[^a-zA-Z0-9._-]/g, '_')}.json`);
+  return path.join(base, project, 'debates', `${id.replace(/[^a-zA-Z0-9._-]/g, '_')}.json`);
 }
 
 export function saveSession(session: DebateSession, env: NodeJS.ProcessEnv = process.env): void {
@@ -31,9 +31,10 @@ export function saveSession(session: DebateSession, env: NodeJS.ProcessEnv = pro
 }
 
 export function loadSession(id: string, env: NodeJS.ProcessEnv = process.env): DebateSession {
-  const target = sessionPath(id, env);
+  const current = sessionPath(id, env);
+  const target = fs.existsSync(current) ? current : sessionPath(id, env, 'council-axi');
   const notFound = new CouncilError(
-    `Debate session "${id}" not found or expired. Start a new one with: council-axi debate "<prompt>" --participate`,
+    `Debate session "${id}" not found or expired. Start a new one with: council debate "<prompt>" --participate`,
     'SESSION_NOT_FOUND'
   );
   let raw: string;
@@ -59,10 +60,16 @@ export function loadSession(id: string, env: NodeJS.ProcessEnv = process.env): D
 
 export function deleteSession(id: string, env: NodeJS.ProcessEnv = process.env): void {
   fs.rmSync(sessionPath(id, env), { force: true });
+  fs.rmSync(sessionPath(id, env, 'council-axi'), { force: true });
 }
 
 export function cleanupExpired(env: NodeJS.ProcessEnv = process.env): void {
-  const dir = path.dirname(sessionPath('x', env));
+  for (const project of ['council', 'council-axi']) {
+    cleanupDirectory(path.dirname(sessionPath('x', env, project)));
+  }
+}
+
+function cleanupDirectory(dir: string): void {
   let entries: string[];
   try {
     entries = fs.readdirSync(dir);

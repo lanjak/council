@@ -3,11 +3,11 @@ import { CouncilError } from '../errors.js';
 import { parseVerdict } from '../verdict.js';
 import { formatTranscript, openerPrompt, turnPrompt } from './prompts.js';
 import type { CouncilConfig } from '../config.js';
-import type { DebateTurn } from '../types.js';
+import type { DebateTurn, RunControls } from '../types.js';
 
 export const CALLER = 'caller';
 
-export interface DebateRunOptions {
+export interface DebateRunOptions extends RunControls {
   prompt: string;
   models: string[]; // judge provider keys; CALLER is appended by the engine
   participate: boolean;
@@ -198,6 +198,8 @@ async function judgeTurn(
     const result = await loadProvider(providerKey, providerConfig).chat({
       prompt: opts.prompt,
       system: instructions,
+      maxTokens: opts.maxTokens,
+      effort: opts.effort,
       model: providerConfig.model,
     });
     return {

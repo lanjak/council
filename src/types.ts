@@ -9,7 +9,14 @@ export interface JudgeResult {
   blockParse?: BlockParse;
 }
 
-export interface CouncilRequest {
+export type Effort = 'low' | 'medium' | 'high' | 'xhigh';
+
+export interface RunControls {
+  maxTokens?: number;
+  effort?: Effort;
+}
+
+export interface CouncilRequest extends RunControls {
   prompt: string;
   mode: 'review' | 'plan';
   models: string[];
@@ -31,13 +38,12 @@ export interface CouncilOutput {
   unknownJudges: UnknownJudge[];
 }
 
-export interface ProviderConfig {
+export interface ProviderConfig extends RunControls {
   name: string;
   apiKey: string;
   baseURL: string;
   model?: string;
   displayName: string;
-  maxTokens?: number;
   temperature?: number;
   kind?: 'openai' | 'anthropic';
 }
@@ -68,7 +74,7 @@ export interface DebateOutput {
   warnings?: string[];
 }
 
-export interface DebateSession {
+export interface DebateSession extends RunControls {
   id: string;
   createdAt: string; // ISO timestamp, drives 24h expiry
   prompt: string; // artifact-expanded text

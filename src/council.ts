@@ -40,6 +40,8 @@ export async function runCouncil(config: CouncilConfig, request: CouncilRequest)
       const result = await provider.chat({
         prompt: request.prompt,
         system: request.systemPrompt,
+        maxTokens: request.maxTokens,
+        effort: request.effort,
         model: providerConfig.model,
       });
 

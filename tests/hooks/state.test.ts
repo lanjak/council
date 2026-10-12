@@ -21,6 +21,18 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+it('merges legacy and current pending edits and clears both paths', () => {
+  const legacy = path.join(dir, 'council-axi', 'session.jsonl');
+  fs.mkdirSync(path.dirname(legacy), { recursive: true });
+  fs.writeFileSync(legacy, JSON.stringify({ file: '/repo/old.ts', cwd: '/repo', ts: 1 }) + '\n');
+  recordEdit('session', 'new.ts', '/repo', env);
+  expect(stateFilePath('session', env)).toContain('/council/');
+  expect(pendingEdits('session', env)).toEqual(['/repo/new.ts', '/repo/old.ts']);
+  clearSession('session', env);
+  expect(pendingEdits('session', env)).toEqual([]);
+  expect(fs.existsSync(legacy)).toBe(false);
+});
+
 describe('resolveSessionKey', () => {
   it('prefixes with the harness when both are known', () => {
     expect(resolveSessionKey({ harness: 'claude-code', sessionId: 'abc' }))

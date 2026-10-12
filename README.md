@@ -60,6 +60,30 @@ Optional:
   range is 0-1, unlike OpenAI-compatible's 0-2; a value above 1 copied from
   an existing OpenAI-style entry will fail at request time.
 
+### Per-task token budget and reasoning effort
+
+The calling agent should choose `--max-tokens <n>` for each task. Use a small
+budget for reviewing a finished plan and a large budget for scanning a codebase.
+The value must be a positive integer. It applies to every judge call in `review`,
+`plan`, or `debate` and overrides `<PREFIX>_MAX_TOKENS`.
+
+```sh
+council plan "Review this finished plan" --file plan.md --max-tokens 4096
+council review "Scan this codebase" --file src --max-tokens 32768 --effort high
+council debate "Choose an approach" --max-tokens 8192 --effort medium --no-participate
+```
+
+Reasoning effort accepts `low`, `medium`, `high`, or `xhigh`. Precedence is
+`--effort`, then `<PREFIX>_EFFORT`, then `COUNCIL_EFFORT`, then `medium`.
+Invalid configured levels fail at config load. OpenAI-compatible requests send
+`reasoning_effort`; Anthropic requests send `output_config.effort`. The model
+and endpoint must support the selected level. Paused debates retain per-run
+controls when resumed.
+
+New state is written under `$XDG_STATE_HOME/council` (default:
+`~/.local/state/council`). Existing `council-axi` debate sessions remain readable;
+hook edit tracking reads both locations. Environment variable names stay the same.
+
 ### Example providers
 
 These are not built in. Add the ones you have keys for.

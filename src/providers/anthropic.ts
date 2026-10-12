@@ -57,6 +57,7 @@ export class AnthropicProvider extends LLMProvider {
     const response = await this.client.messages
       .stream({
         model: options.model,
+        output_config: { effort: options.effort ?? this.config.effort ?? 'medium' },
         max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_ANTHROPIC_MAX_TOKENS,
         messages: [{ role: 'user', content: options.prompt }],
         ...(system ? { system } : {}),
