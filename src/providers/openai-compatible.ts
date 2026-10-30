@@ -47,15 +47,18 @@ export class OpenAICompatibleProvider extends LLMProvider {
     // 1), so when nothing is configured the field is omitted entirely.
     const temperature = options.temperature ?? this.config.temperature;
     const effort = options.effort ?? this.config.effort;
-    const completion = await this.client.chat.completions.create({
-      model: options.model,
-      // This SDK predates xhigh; compatible endpoints accept it on the wire.
-      ...(effort !== undefined ? { reasoning_effort: effort as OpenAI.Chat.ChatCompletionCreateParams['reasoning_effort'] } : {}),
-      messages,
-      ...(temperature !== undefined ? { temperature } : {}),
-      max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_OPENAI_MAX_TOKENS,
-      response_format: options.jsonMode ? { type: 'json_object' } : undefined,
-    });
+    const completion = await this.client.chat.completions.create(
+      {
+        model: options.model,
+        // This SDK predates xhigh; compatible endpoints accept it on the wire.
+        ...(effort !== undefined ? { reasoning_effort: effort as OpenAI.Chat.ChatCompletionCreateParams['reasoning_effort'] } : {}),
+        messages,
+        ...(temperature !== undefined ? { temperature } : {}),
+        max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_OPENAI_MAX_TOKENS,
+        response_format: options.jsonMode ? { type: 'json_object' } : undefined,
+      },
+      options.traceparent ? { headers: { traceparent: options.traceparent } } : undefined,
+    );
 
     const choice = completion.choices[0];
     const content = choice?.message?.content ?? '';
