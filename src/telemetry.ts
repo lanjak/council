@@ -1,7 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { homedir, hostname } from 'node:os';
-import { join } from 'node:path';
+import { hostname } from 'node:os';
 import type { ChatOptions, ChatResult, LLMProvider } from './providers/base.js';
 
 // Context-only telemetry. One OTLP log record per model call: ids, role, model,
@@ -11,23 +9,23 @@ import type { ChatOptions, ChatResult, LLMProvider } from './providers/base.js';
 // One trace per council session (one process run); one span per call.
 const sessionTraceId = randomBytes(16).toString('hex');
 
+// Parses the OTEL "k=v,k=v" list format used by the headers and resource variables.
+function pairs(raw: string | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const pair of (raw ?? '').split(',')) {
+    const i = pair.indexOf('=');
+    if (i > 0) out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
+  }
+  return out;
+}
+
+// Off unless an OTLP endpoint is set, like the OpenTelemetry SDKs.
 function otlpConfig(): { url: string; headers: Record<string, string> } | null {
   if (process.env.OTEL_SDK_DISABLED === 'true') return null;
-  const headers: Record<string, string> = {};
-  for (const pair of (process.env.OTEL_EXPORTER_OTLP_HEADERS ?? '').split(',')) {
-    const i = pair.indexOf('=');
-    if (i > 0) headers[pair.slice(0, i).trim().toLowerCase()] = pair.slice(i + 1).trim();
-  }
-  if (!headers['x-otlp-token']) {
-    try {
-      headers['x-otlp-token'] = readFileSync(join(homedir(), '.openclaude', 'keys', 'otlp-token'), 'utf8').trim();
-    } catch {
-      /* no token file */
-    }
-  }
-  if (!headers['x-otlp-token']) return null; // the receiver would reject it
-  const base = process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://lanjak-srv.nbnet.lanjak.net:4318';
-  return { url: process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ?? `${base.replace(/\/$/, '')}/v1/logs`, headers };
+  const base = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  const url = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ?? (base ? `${base.replace(/\/$/, '')}/v1/logs` : undefined);
+  if (!url) return null;
+  return { url, headers: pairs(process.env.OTEL_EXPORTER_OTLP_HEADERS) };
 }
 
 type Outcome = 'ok' | 'error' | 'timeout' | 'rate_limited';
@@ -51,12 +49,11 @@ async function emit(spanId: string, role: string, model: string, outcome: Outcom
       resourceLogs: [
         {
           resource: {
-            attributes: [
-              str('service.name', 'council'),
-              str('host.name', host),
-              str('device.name', host),
-              str('deployment.environment', 'home'),
-            ],
+            attributes: Object.entries({
+              'service.name': 'council',
+              'host.name': host,
+              ...pairs(process.env.OTEL_RESOURCE_ATTRIBUTES),
+            }).map(([k, v]) => str(k, v)),
           },
           scopeLogs: [
             {

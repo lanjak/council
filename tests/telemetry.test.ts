@@ -100,6 +100,14 @@ describe('council OTLP context events', () => {
     expect(colSeen[0].body).not.toMatch(/ECONNREFUSED|SECRET/);
   });
 
+  it('sends nothing when no OTLP endpoint is set', async () => {
+    delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+    delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
+    const results = await runCouncil(config(), { models: ['mimo'], prompt: PROMPT } as never);
+    expect(results[0].status).toBe('success');
+    expect(colSeen).toHaveLength(0);
+  });
+
   it('does not fail the run when the collector is down', async () => {
     collector.close();
     const results = await runCouncil(config(), { models: ['mimo'], prompt: PROMPT } as never);

@@ -220,7 +220,7 @@ help[1]: Run `npx -y @lanjak/council review "<prompt>" --models openai,groq`
 
 For each model call council sends a `traceparent` header (one trace per run, one span per call) and one OTLP/HTTP log record with context only: trace and span id, role (`judge` or `debate`), requested model, device, outcome and duration. It never sends prompt or response text, tokens or cost. Sending stops after 1.5 seconds and never fails a run.
 
-It is on when an `x-otlp-token` is set in `OTEL_EXPORTER_OTLP_HEADERS` or in `~/.openclaude/keys/otlp-token`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`) to choose the collector, and `OTEL_SDK_DISABLED=true` to turn it off.
+It is off until you set `OTEL_EXPORTER_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`). Council also reads `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_RESOURCE_ATTRIBUTES`. Set `OTEL_SDK_DISABLED=true` to turn it off.
 
 ## Library usage
 
