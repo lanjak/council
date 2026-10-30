@@ -6,7 +6,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
 
 permissions:
   contents: read
@@ -23,7 +23,9 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
       - name: Check the tag matches package.json
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm ci
       - run: npm run lint
       - run: npm test
