@@ -6,15 +6,38 @@ import type { ChatOptions, ChatResult, LLMProvider } from './providers/base.js';
 // device, outcome, duration. Never prompt or response text, tokens or cost
 // (the gateway is authoritative for those).
 
-// One trace per council session (one process run); one span per call.
-const sessionTraceId = randomBytes(16).toString('hex');
+export function createTraceId(): string | undefined {
+  return otlpConfig() ? randomBytes(16).toString('hex') : undefined;
+}
+
+const pending = new Set<Promise<void>>();
+
+export async function flushTelemetry(): Promise<void> {
+  if (!pending.size) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.all([...pending]),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, 1500); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // Parses the OTEL "k=v,k=v" list format used by the headers and resource variables.
 function pairs(raw: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   for (const pair of (raw ?? '').split(',')) {
     const i = pair.indexOf('=');
-    if (i > 0) out[pair.slice(0, i).trim()] = pair.slice(i + 1).trim();
+    if (i > 0) {
+      const value = pair.slice(i + 1).trim();
+      try {
+        out[pair.slice(0, i).trim()] = decodeURIComponent(value);
+      } catch {
+        out[pair.slice(0, i).trim()] = value;
+      }
+    }
   }
   return out;
 }
@@ -39,7 +62,7 @@ function outcomeOf(err: unknown): Outcome {
 }
 
 // Fire-and-forget: short timeout, swallows every error.
-async function emit(spanId: string, role: string, model: string, outcome: Outcome, durationMs: number): Promise<void> {
+async function emit(traceId: string, spanId: string, role: string, model: string, outcome: Outcome, durationMs: number): Promise<void> {
   try {
     const cfg = otlpConfig();
     if (!cfg) return;
@@ -62,7 +85,7 @@ async function emit(spanId: string, role: string, model: string, outcome: Outcom
                 {
                   timeUnixNano: String(BigInt(Date.now()) * 1000000n),
                   severityNumber: outcome === 'ok' ? 9 : 17,
-                  traceId: sessionTraceId,
+                  traceId,
                   spanId,
                   attributes: [
                     str('event.name', 'council.call'),
@@ -80,28 +103,32 @@ async function emit(spanId: string, role: string, model: string, outcome: Outcom
         },
       ],
     };
-    await fetch(cfg.url, {
+    const response = await fetch(cfg.url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...cfg.headers },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(1500),
     });
+    await response.body?.cancel();
   } catch {
     /* telemetry must never fail the command */
   }
 }
 
 /** provider.chat with a traceparent header and one context event afterwards. */
-export async function tracedChat(provider: LLMProvider, role: string, options: ChatOptions): Promise<ChatResult> {
+export async function tracedChat(provider: LLMProvider, role: string, options: ChatOptions, traceId: string | undefined): Promise<ChatResult> {
+  if (!traceId || !otlpConfig()) return provider.chat(options);
   const spanId = randomBytes(8).toString('hex');
   const start = Date.now();
   let outcome: Outcome = 'ok';
   try {
-    return await provider.chat({ ...options, traceparent: `00-${sessionTraceId}-${spanId}-01` });
+    return await provider.chat({ ...options, traceparent: `00-${traceId}-${spanId}-01` });
   } catch (err) {
     outcome = outcomeOf(err);
     throw err;
   } finally {
-    await emit(spanId, role, options.model, outcome, Date.now() - start);
+    const send = emit(traceId, spanId, role, options.model, outcome, Date.now() - start);
+    pending.add(send);
+    void send.finally(() => pending.delete(send));
   }
 }
