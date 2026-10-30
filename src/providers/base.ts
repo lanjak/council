@@ -6,6 +6,8 @@ export interface ChatOptions extends RunControls {
   model: string;
   temperature?: number;
   jsonMode?: boolean;
+  /** W3C traceparent sent to the gateway so its span joins the caller trace. */
+  traceparent?: string;
 }
 
 export interface ChatResult {

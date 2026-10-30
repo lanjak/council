@@ -1,4 +1,5 @@
 import { loadProvider } from '../providers/index.js';
+import { tracedChat } from '../telemetry.js';
 import { CouncilError } from '../errors.js';
 import { parseVerdict } from '../verdict.js';
 import { formatTranscript, openerPrompt, turnPrompt } from './prompts.js';
@@ -195,7 +196,7 @@ async function judgeTurn(
         });
 
   try {
-    const result = await loadProvider(providerKey, providerConfig).chat({
+    const result = await tracedChat(loadProvider(providerKey, providerConfig), 'debate', {
       prompt: opts.prompt,
       system: instructions,
       maxTokens: opts.maxTokens,

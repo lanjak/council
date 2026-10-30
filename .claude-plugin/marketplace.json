@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Multi-LLM adversarial review council via the council CLI",
-    "version": "0.5.0"
+    "version": "0.6.0"
   },
   "plugins": [
     {
       "name": "council",
       "source": "./plugin",
       "description": "Run a multi-LLM adversarial review council via the council CLI",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "author": {
         "name": "lanjak"
       },

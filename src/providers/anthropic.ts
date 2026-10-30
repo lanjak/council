@@ -55,16 +55,19 @@ export class AnthropicProvider extends LLMProvider {
     // subject to that guard, while still resolving to the one accumulated
     // Message - same shape create() would have returned.
     const response = await this.client.messages
-      .stream({
-        model: options.model,
-        ...((options.effort ?? this.config.effort) !== undefined
-          ? { output_config: { effort: options.effort ?? this.config.effort } }
-          : {}),
-        max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_ANTHROPIC_MAX_TOKENS,
-        messages: [{ role: 'user', content: options.prompt }],
-        ...(system ? { system } : {}),
-        ...(temperature !== undefined ? { temperature } : {}),
-      })
+      .stream(
+        {
+          model: options.model,
+          ...((options.effort ?? this.config.effort) !== undefined
+            ? { output_config: { effort: options.effort ?? this.config.effort } }
+            : {}),
+          max_tokens: options.maxTokens ?? this.config.maxTokens ?? DEFAULT_ANTHROPIC_MAX_TOKENS,
+          messages: [{ role: 'user', content: options.prompt }],
+          ...(system ? { system } : {}),
+          ...(temperature !== undefined ? { temperature } : {}),
+        },
+        options.traceparent ? { headers: { traceparent: options.traceparent } } : undefined,
+      )
       .finalMessage();
 
     // Non-text blocks (tool_use, thinking, etc.) are intentionally dropped:
