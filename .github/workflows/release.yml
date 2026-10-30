@@ -1,0 +1,32 @@
+name: Release
+
+# Publishes to npm when a vX.Y.Z tag is pushed. npm Trusted Publishing (OIDC):
+# no npm token is stored anywhere. The trusted publisher for @lanjak/council on
+# npmjs.com must name this repository and this workflow file (release.yml).
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - name: Check the tag matches package.json
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm publish
