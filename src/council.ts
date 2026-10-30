@@ -1,3 +1,4 @@
+import { tracedChat } from './telemetry.js';
 import { loadProvider } from './providers/index.js';
 import { parseHardBlocks } from './blocks.js';
 import type { CouncilConfig } from './config.js';
@@ -37,7 +38,7 @@ export async function runCouncil(config: CouncilConfig, request: CouncilRequest)
     const provider = loadProvider(providerKey, providerConfig);
 
     try {
-      const result = await provider.chat({
+      const result = await tracedChat(provider, 'judge', {
         prompt: request.prompt,
         system: request.systemPrompt,
         maxTokens: request.maxTokens,
