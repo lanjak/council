@@ -1,5 +1,5 @@
 import { loadProvider } from '../providers/index.js';
-import { tracedChat } from '../telemetry.js';
+import { createTraceId, tracedChat } from '../telemetry.js';
 import { CouncilError } from '../errors.js';
 import { parseVerdict } from '../verdict.js';
 import { formatTranscript, openerPrompt, turnPrompt } from './prompts.js';
@@ -59,6 +59,7 @@ export async function runDebate(
   opts: DebateRunOptions,
   resume?: { turns: DebateTurn[]; nextTurn: { round: number; participant: string; order: string[] } }
 ): Promise<DebateProgress> {
+  const traceId = createTraceId();
   const roster = opts.participate ? [...opts.models, CALLER] : [...opts.models];
   const turns: DebateTurn[] = resume ? [...resume.turns] : [];
   let round = resume ? resume.nextTurn.round : 1;
@@ -126,7 +127,7 @@ export async function runDebate(
         checkRoundOneQuorum(round, roster, turns);
         return { turns, status: 'awaiting-caller', nextTurn: { round, participant: CALLER, order } };
       }
-      turns.push(await judgeTurn(config, opts, roster.length, round, participant, turns));
+      turns.push(await judgeTurn(config, opts, roster.length, round, participant, turns, traceId));
     }
 
     checkRoundOneQuorum(round, roster, turns);
@@ -147,7 +148,8 @@ async function judgeTurn(
   judgeCount: number,
   round: number,
   providerKey: string,
-  priorTurns: DebateTurn[]
+  priorTurns: DebateTurn[],
+  traceId: string | undefined
 ): Promise<DebateTurn> {
   const providerConfig = config.providers[providerKey];
 
@@ -202,7 +204,7 @@ async function judgeTurn(
       maxTokens: opts.maxTokens,
       effort: opts.effort,
       model: providerConfig.model,
-    });
+    }, traceId);
     return {
       round,
       provider: providerKey,
