@@ -218,9 +218,13 @@ help[1]: Run `npx -y @lanjak/council review "<prompt>" --models openai,groq`
 
 ## Usage telemetry (optional)
 
-For each model call council sends a `traceparent` header (one trace per run, one span per call) and one OTLP/HTTP log record with context only: trace and span id, role (`judge` or `debate`), requested model, device, outcome and duration. It never sends prompt or response text, tokens or cost. Sending stops after 1.5 seconds and never fails a run.
+Telemetry is off unless you set `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`. Set `OTEL_SDK_DISABLED=true` to disable both log export and the `traceparent` header.
 
-It is off until you set `OTEL_EXPORTER_OTLP_ENDPOINT` (or `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`). Council also reads `OTEL_EXPORTER_OTLP_HEADERS` and `OTEL_RESOURCE_ATTRIBUTES`. Set `OTEL_SDK_DISABLED=true` to turn it off.
+When enabled, council sends a W3C `traceparent` header to OpenAI-compatible and Anthropic providers, with one trace per run and one span per model call. After each call, it exports one OTLP/HTTP JSON log record with context only: trace and span IDs, role (`judge` or `debate`), requested model, device (hostname), outcome (`ok`, `error`, `timeout` or `rate_limited`) and duration. It never exports prompt or response text, token counts or cost. The gateway owns token and cost reporting.
+
+Council appends `/v1/logs` to `OTEL_EXPORTER_OTLP_ENDPOINT`. If set, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` takes precedence and is used as the complete URL. Export headers come from `OTEL_EXPORTER_OTLP_HEADERS`; resource attributes come from `OTEL_RESOURCE_ATTRIBUTES`. Both accept comma-separated `key=value` pairs with percent-encoded values.
+
+Exports run in the background with a 1.5-second timeout per request. Model calls do not wait for exports, and export failures do not fail a run. Before exit, the CLI waits once for pending exports, for at most 1.5 seconds total. Library calls return without waiting for exports; an immediate process exit can discard pending records.
 
 ## Library usage
 
