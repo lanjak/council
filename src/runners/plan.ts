@@ -1,5 +1,6 @@
 import { loadConfig, resolveModels, type CouncilConfig } from '../config.js';
 import { runCouncil } from '../council.js';
+import { createTraceId } from '../telemetry.js';
 import { synthesize } from '../chairman.js';
 import { buildPrompt } from '../input.js';
 import { CouncilError } from '../errors.js';
@@ -18,6 +19,7 @@ export interface PlanOptions extends RunControls {
 }
 
 export async function runPlan(opts: PlanOptions): Promise<CouncilOutput> {
+  const traceId = createTraceId();
   const config = opts.config ?? loadConfig();
   const models = resolveModels(opts.models, config.providers);
   const prompt = buildPrompt(opts.prompt, opts);
@@ -32,7 +34,7 @@ export async function runPlan(opts: PlanOptions): Promise<CouncilOutput> {
     blockKey,
     maxTokens: opts.maxTokens,
     effort: opts.effort,
-  });
+  }, traceId);
   const availableCount = judges.filter((j) => j.status === 'success').length;
   if (availableCount === 0) {
     throw new CouncilError('All providers unavailable', 'NO_QUORUM');

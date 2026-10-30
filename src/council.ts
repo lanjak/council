@@ -1,9 +1,10 @@
+import { createTraceId, tracedChat } from './telemetry.js';
 import { loadProvider } from './providers/index.js';
 import { parseHardBlocks } from './blocks.js';
 import type { CouncilConfig } from './config.js';
 import type { CouncilRequest, JudgeResult } from './types.js';
 
-export async function runCouncil(config: CouncilConfig, request: CouncilRequest): Promise<JudgeResult[]> {
+export async function runCouncil(config: CouncilConfig, request: CouncilRequest, traceId = createTraceId()): Promise<JudgeResult[]> {
   const promises = request.models.map(async (providerKey): Promise<JudgeResult> => {
     const providerConfig = config.providers[providerKey];
 
@@ -37,13 +38,13 @@ export async function runCouncil(config: CouncilConfig, request: CouncilRequest)
     const provider = loadProvider(providerKey, providerConfig);
 
     try {
-      const result = await provider.chat({
+      const result = await tracedChat(provider, 'judge', {
         prompt: request.prompt,
         system: request.systemPrompt,
         maxTokens: request.maxTokens,
         effort: request.effort,
         model: providerConfig.model,
-      });
+      }, traceId);
 
       return {
         provider: providerKey,

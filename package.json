@@ -1,6 +1,6 @@
 {
   "name": "@lanjak/council",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Multi-LLM adversarial review council - an AXI",
   "type": "module",
   "main": "./dist/index.js",

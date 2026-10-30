@@ -10,6 +10,7 @@ import { setupCommand } from './commands/setup.js';
 import { homeCommand } from './commands/home.js';
 import { hookCommand } from './commands/hook.js';
 import { formatError } from './errors.js';
+import { flushTelemetry } from './telemetry.js';
 
 // Read from package.json at runtime rather than hardcoding a copy of the
 // version string here - a hardcoded literal silently drifts from
@@ -108,7 +109,7 @@ async function main(): Promise<void> {
   await program.parseAsync(process.argv);
 }
 
-main().catch((err) => {
+main().finally(flushTelemetry).catch((err) => {
   if (err instanceof CommanderError) {
     if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
       process.exit(0);
