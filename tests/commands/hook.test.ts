@@ -62,6 +62,7 @@ describe('hookCommand', () => {
   });
 
   it('session-start prints provider availability and exits 0', async () => {
+    clearGateEnv();
     process.env.COUNCIL_PROVIDERS = 'mimo';
     process.env.MIMO_API_KEY = 'k';
     process.env.MIMO_BASE_URL = 'https://api.xiaomimimo.com/v1';
@@ -72,10 +73,7 @@ describe('hookCommand', () => {
     expect(process.exitCode).toBe(0);
     const out = logSpy.mock.calls.map((c) => c[0]).join('\n');
     expect(out).toContain('mimo');
-    delete process.env.COUNCIL_PROVIDERS;
-    delete process.env.MIMO_API_KEY;
-    delete process.env.MIMO_BASE_URL;
-    delete process.env.MIMO_MODEL;
+    clearGateEnv();
   });
 
   it('post-edit records all payload files and exits 0 silently', async () => {
@@ -132,13 +130,14 @@ const gateEnv = () => {
   process.env.DEEPSEEK_MODEL = 'm2';
 };
 const clearGateEnv = () => {
-  for (const v of ['COUNCIL_PROVIDERS', 'MIMO_API_KEY', 'MIMO_BASE_URL', 'MIMO_MODEL', 'DEEPSEEK_API_KEY', 'DEEPSEEK_BASE_URL', 'DEEPSEEK_MODEL']) {
+  for (const v of ['COUNCIL_PROVIDERS', 'COUNCIL_MODELS', 'GW_API_KEY', 'GW_BASE_URL', 'MIMO_API_KEY', 'MIMO_BASE_URL', 'MIMO_MODEL', 'DEEPSEEK_API_KEY', 'DEEPSEEK_BASE_URL', 'DEEPSEEK_MODEL']) {
     delete process.env[v];
   }
 };
 
 describe('hookCommand stop gate', () => {
   beforeEach(() => {
+    clearGateEnv();
     gateEnv();
     vi.mocked(runCouncil).mockReset();
     vi.mocked(clearSession).mockClear();
@@ -259,11 +258,7 @@ describe('hookCommand stop gate', () => {
       { provider: 'gw:llama3:8b', model: 'llama3:8b', status: 'success', response: 'ok\nVERDICT: pass' },
     ]);
 
-    try {
-      await hookCommand('stop', { payload });
-    } finally {
-      for (const v of ['GW_API_KEY', 'GW_BASE_URL', 'COUNCIL_MODELS']) delete process.env[v];
-    }
+    await hookCommand('stop', { payload });
 
     expect(vi.mocked(runCouncil).mock.calls[0][1].models).toEqual(['gw:kimi-k3', 'gw:llama3:8b']);
     expect(process.exitCode).toBe(0);

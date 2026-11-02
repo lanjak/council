@@ -12,6 +12,7 @@ vi.mock('../../src/providers/index.js', () => ({ loadProvider: vi.fn() }));
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); process.exitCode = 0; });
 function setup() {
   vi.stubEnv('COUNCIL_PROVIDERS', 'a,b');
+  vi.stubEnv('COUNCIL_MODELS', '');
   for (const prefix of ['A', 'B']) {
     vi.stubEnv(`${prefix}_API_KEY`, 'key');
     vi.stubEnv(`${prefix}_MODEL`, 'model');
