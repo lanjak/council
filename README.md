@@ -218,9 +218,12 @@ $ council setup
 providers[2]{name,authenticated,detail}:
   openai,true,OpenAI API key is set
   groq,true,Groq API key is set
-help[2]:
+help[5]:
   Set COUNCIL_PROVIDERS and per-provider env vars to add judges
   Example: COUNCIL_PROVIDERS=openai OPENAI_API_KEY=sk-... OPENAI_BASE_URL=https://api.openai.com/v1 OPENAI_MODEL=gpt-4o
+  Run `council models` to list what each endpoint offers; <KEY>_MODEL is optional for a gateway
+  Set COUNCIL_MODELS=gw:<model>,openai to choose the default judges when --models is not given
+  Anthropic example: COUNCIL_PROVIDERS=claude CLAUDE_KIND=anthropic CLAUDE_API_KEY=sk-ant-... CLAUDE_MODEL=claude-opus-5
 ```
 
 Run an adversarial review:
