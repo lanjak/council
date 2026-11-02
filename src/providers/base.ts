@@ -22,6 +22,15 @@ export interface AuthResult {
   detail: string;
 }
 
+export interface ModelInfo {
+  id: string;
+  /** Input context window in tokens, when the endpoint reports one. */
+  context?: number;
+}
+
+// Listing is a quick metadata call; never let a dead gateway hang `council models`.
+export const LIST_MODELS_TIMEOUT_MS = 15_000;
+
 export interface ProviderCapabilities {
   supportsReasoning: boolean;
   supportsJsonMode: boolean;
@@ -36,4 +45,6 @@ export abstract class LLMProvider {
 
   abstract checkAuth(): Promise<AuthResult>;
   abstract chat(options: ChatOptions): Promise<ChatResult>;
+  /** Models the endpoint offers to this key. */
+  abstract listModels(): Promise<ModelInfo[]>;
 }

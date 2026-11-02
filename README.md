@@ -44,7 +44,8 @@ Required for each provider:
 
 - `<KEY>_API_KEY` - the provider API key
 - `<KEY>_BASE_URL` - the OpenAI-compatible base URL
-- `<KEY>_MODEL` - the model ID to call
+- `<KEY>_MODEL` - the model ID to call (optional for a gateway; see
+  [Gateways](#gateways-pick-models-at-run-time))
 
 Optional:
 
@@ -62,6 +63,51 @@ Optional:
   API root - not a full `/v1/messages` path. Note Anthropic's `temperature`
   range is 0-1, unlike OpenAI-compatible's 0-2; a value above 1 copied from
   an existing OpenAI-style entry will fail at request time.
+
+### Gateways: pick models at run time
+
+A gateway (LiteLLM, OmniRoute, OpenRouter, Ollama, and so on) serves many
+models behind one base URL and one key. Configure the gateway once as a
+provider. `<KEY>_MODEL` is optional for a gateway:
+
+```sh
+export COUNCIL_PROVIDERS="gw"
+export GW_API_KEY="sk-..."
+export GW_BASE_URL="http://localhost:4000/v1"
+```
+
+List the models that each configured endpoint offers to your key:
+
+```sh
+council models            # every configured provider
+council models gw         # one provider
+council models --filter kimi
+```
+
+Then pick judges as `<provider>:<model>` in `--models`. A plain provider key
+still uses its `<KEY>_MODEL`, and you can mix the two forms:
+
+```sh
+council review "<prompt>" --models gw:kimi-k3,gw:deepseek-v4-pro,openai
+```
+
+The `<provider>:<model>` judge uses all settings of `<provider>` (key, base
+URL, kind, token cap, effort) with the model replaced. The split is at the
+first colon, so model IDs that contain colons (`llama3:8b`) work. Providers
+that share one kind, base URL, and key are listed once. A provider without
+`<KEY>_MODEL` is skipped when you call it by its plain key.
+
+For `<KEY>_KIND=openai`, `council models` sends `GET <KEY>_BASE_URL/models`.
+For `<KEY>_KIND=anthropic`, it uses the Anthropic `GET /v1/models` list.
+
+This list endpoint is served by OpenAI, LiteLLM, OmniRoute, OpenRouter,
+Portkey, Helicone, Vercel AI Gateway, Bifrost, Envoy AI Gateway, New API,
+Requesty, LM Studio, Ollama, vLLM, llama.cpp, and LocalAI. Many gateways
+(LiteLLM, OmniRoute, Bifrost, New API, Requesty) return only the models your
+key may use, and some can hide a model that still works. Cloudflare AI
+Gateway, TensorZero, and Kong AI Gateway before 3.14 have no list endpoint.
+With those, and for hidden models, type the model ID yourself as
+`<provider>:<model>`.
 
 ### Per-task token budget and reasoning effort
 

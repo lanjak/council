@@ -21,19 +21,27 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
    - `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`
    - `GROQ_API_KEY`, `GROQ_BASE_URL`, `GROQ_MODEL`
    - Any OpenAI-compatible provider works the same way.
-2. Run the CLI:
+   - A gateway (LiteLLM, OmniRoute, OpenRouter, Ollama) needs only
+     `<KEY>_API_KEY` and `<KEY>_BASE_URL`. `<KEY>_MODEL` is optional.
+2. Choose the judges. Run `npx -y @lanjak/council models` to list the models
+   that each configured endpoint offers (`--filter <text>` narrows the list).
+   Pass a judge as a provider key (uses `<KEY>_MODEL`) or as
+   `<provider>:<model>` (any listed model through that provider). Choose
+   models from different families for independent opinions.
+3. Run the CLI:
    ```bash
    npx -y @lanjak/council review "<prompt or artifact summary>" --models openai,groq
+   npx -y @lanjak/council review "<prompt>" --models gw:kimi-k3,gw:deepseek-v4-pro
    ```
-3. Choose a positive integer for `--max-tokens <n>` per task. Use a small
+4. Choose a positive integer for `--max-tokens <n>` per task. Use a small
    budget for a finished plan and a large budget for a codebase scan.
    It overrides `<PREFIX>_MAX_TOKENS`
    for every judge, including resumed debate turns.
-4. Use `--effort low|medium|high|xhigh` to override the environment.
+5. Use `--effort low|medium|high|xhigh` to override the environment.
    `<PREFIX>_EFFORT` overrides `COUNCIL_EFFORT`. With nothing configured, the
    request omits effort. Set `COUNCIL_EFFORT=medium` to use medium effort by default.
    The model and endpoint must support the selected effort level.
-5. Return stdout verbatim to the user.
+6. Return stdout verbatim to the user.
 
 ## Debate vs review/plan
 
@@ -77,6 +85,7 @@ non-empty `unknown` section as "we do not know", not as "clean".
 ## Commands
 
 - `npx -y @lanjak/council setup` - check authentication
+- `npx -y @lanjak/council models [providers...]` - list the models each endpoint offers
 - `npx -y @lanjak/council review "..."` - adversarial review
 - `npx -y @lanjak/council plan "..."` - pressure-test a plan
 - `npx -y @lanjak/council debate "..."` - sequential adversarial debate until consensus

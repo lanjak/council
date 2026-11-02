@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { LLMProvider, ChatOptions, ChatResult, AuthResult, ProviderCapabilities } from './base.js';
+import { LLMProvider, ChatOptions, ChatResult, AuthResult, ProviderCapabilities, ModelInfo, LIST_MODELS_TIMEOUT_MS } from './base.js';
 import type { ProviderConfig } from '../types.js';
 import { DEFAULT_OPENAI_MAX_TOKENS } from './constants.js';
 
@@ -76,4 +76,23 @@ export class OpenAICompatibleProvider extends LLMProvider {
 
     return { content, reasoning, usage };
   }
+
+  // GET {baseURL}/models: the OpenAI list shape, which LiteLLM, OmniRoute,
+  // OpenRouter, Ollama, vLLM and most other gateways serve.
+  async listModels(): Promise<ModelInfo[]> {
+    const models: ModelInfo[] = [];
+    for await (const model of this.client.models.list({ timeout: LIST_MODELS_TIMEOUT_MS, maxRetries: 1 })) {
+      models.push({ id: model.id, context: contextOf(model as unknown as Record<string, unknown>) });
+    }
+    return models;
+  }
+}
+
+// Gateways extend the OpenAI model object with their own context field names.
+function contextOf(model: Record<string, unknown>): number | undefined {
+  for (const field of ['context_length', 'max_input_tokens', 'context_window', 'max_model_len']) {
+    const value = model[field];
+    if (typeof value === 'number' && value > 0) return value;
+  }
+  return undefined;
 }

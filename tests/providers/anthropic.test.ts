@@ -264,3 +264,19 @@ describe('AnthropicProvider.checkAuth', () => {
     expect(auth.authenticated).toBe(true);
   });
 });
+
+describe('AnthropicProvider.listModels', () => {
+  it('maps model IDs and max_input_tokens', async () => {
+    const provider = new AnthropicProvider({ name: 'claude', apiKey: 'sk-ant', model: 'claude-opus-5-5' });
+    vi.spyOn(provider['client'].models, 'list').mockReturnValue((async function* () {
+      yield { id: 'claude-opus-5-5', max_input_tokens: 1000000 };
+      yield { id: 'claude-haiku-5-5', max_input_tokens: null };
+    })() as any);
+
+    expect(await provider.listModels()).toEqual([
+      { id: 'claude-opus-5-5', context: 1000000 },
+      { id: 'claude-haiku-5-5', context: undefined },
+    ]);
+  });
+});
+

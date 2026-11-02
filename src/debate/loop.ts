@@ -4,6 +4,7 @@ import { CouncilError } from '../errors.js';
 import { parseVerdict } from '../verdict.js';
 import { formatTranscript, openerPrompt, turnPrompt } from './prompts.js';
 import type { CouncilConfig } from '../config.js';
+import { lookupProvider, noModelMessage } from '../config.js';
 import type { DebateTurn, RunControls } from '../types.js';
 
 export const CALLER = 'caller';
@@ -151,7 +152,7 @@ async function judgeTurn(
   priorTurns: DebateTurn[],
   traceId: string | undefined
 ): Promise<DebateTurn> {
-  const providerConfig = config.providers[providerKey];
+  const providerConfig = lookupProvider(config.providers, providerKey);
 
   if (!providerConfig) {
     return {
@@ -169,7 +170,7 @@ async function judgeTurn(
       provider: providerKey,
       model: 'unknown',
       status: 'skipped',
-      error: { message: `No model configured for provider "${providerKey}"` },
+      error: { message: noModelMessage(providerKey) },
     };
   }
 

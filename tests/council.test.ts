@@ -72,4 +72,21 @@ describe('runCouncil', () => {
     expect(results[0].status).toBe('skipped');
     expect(results[0].error?.message).toContain('No model configured');
   });
+
+  it('calls a gateway model picked as <provider>:<model>', async () => {
+    const chat = vi.fn().mockResolvedValue({ content: 'ok' });
+    vi.mocked(loadProvider).mockClear().mockReturnValue({ name: 'gw', chat } as any);
+    const config: CouncilConfig = {
+      providers: { gw: { name: 'gw', apiKey: 'key', baseURL: 'https://gw.example/v1' } },
+    };
+
+    const results = await runCouncil(config, { prompt: 'p', mode: 'review', models: ['gw:kimi-k3', 'gw'] });
+
+    expect(vi.mocked(loadProvider).mock.calls[0]).toEqual(['gw:kimi-k3', expect.objectContaining({ model: 'kimi-k3' })]);
+    expect(chat.mock.calls[0][0].model).toBe('kimi-k3');
+    expect(results[0]).toMatchObject({ provider: 'gw:kimi-k3', model: 'kimi-k3', status: 'success' });
+    expect(results[1]).toMatchObject({ provider: 'gw', status: 'skipped' });
+    expect(results[1].error?.message).toContain('--models gw:<model>');
+  });
 });
+

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LLMProvider, ChatOptions, ChatResult, AuthResult, ProviderCapabilities } from './base.js';
+import { LLMProvider, ChatOptions, ChatResult, AuthResult, ProviderCapabilities, ModelInfo, LIST_MODELS_TIMEOUT_MS } from './base.js';
 import type { ProviderConfig } from '../types.js';
 import { DEFAULT_ANTHROPIC_MAX_TOKENS } from './constants.js';
 
@@ -106,5 +106,14 @@ export class AnthropicProvider extends LLMProvider {
     };
 
     return { content, usage };
+  }
+
+  // GET /v1/models; the SDK iterator follows has_more/last_id pagination.
+  async listModels(): Promise<ModelInfo[]> {
+    const models: ModelInfo[] = [];
+    for await (const model of this.client.models.list({ limit: 1000 }, { timeout: LIST_MODELS_TIMEOUT_MS, maxRetries: 1 })) {
+      models.push({ id: model.id, context: model.max_input_tokens ?? undefined });
+    }
+    return models;
   }
 }

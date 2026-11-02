@@ -1,6 +1,6 @@
 ---
 description: Run a multi-LLM adversarial review of an artifact or question
-argument-hint: '<prompt> [--models <providers>] [--max-tokens <n>] [--effort <level>]'
+argument-hint: '<prompt> [--models <provider|provider:model,...>] [--max-tokens <n>] [--effort <level>]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)
 ---

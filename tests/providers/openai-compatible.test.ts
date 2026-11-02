@@ -87,3 +87,22 @@ describe('temperature handling', () => {
     expect(create.mock.calls[0][0].temperature).toBe(0.2);
   });
 });
+
+describe('OpenAICompatibleProvider.listModels', () => {
+  it('reads every model and the gateway-specific context field', async () => {
+    const provider = new OpenAICompatibleProvider(config);
+    const list = vi.spyOn(provider['client'].models, 'list').mockReturnValue((async function* () {
+      yield { id: 'kimi-k3', context_length: 262144 };
+      yield { id: 'llama3:8b', max_model_len: 8192 };
+      yield { id: 'bare' };
+    })() as any);
+
+    expect(await provider.listModels()).toEqual([
+      { id: 'kimi-k3', context: 262144 },
+      { id: 'llama3:8b', context: 8192 },
+      { id: 'bare', context: undefined },
+    ]);
+    expect(list.mock.calls[0][0]).toMatchObject({ timeout: 15000 });
+  });
+});
+

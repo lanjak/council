@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadConfig, listProviders, resolveModels } from '../src/config.js';
+import { loadConfig, listProviders, resolveModels, lookupProvider } from '../src/config.js';
 import { parseModelList } from '../src/input.js';
 import { CouncilError } from '../src/errors.js';
 import type { ProviderConfig } from '../src/types.js';
@@ -188,5 +188,27 @@ describe('resolveModels', () => {
 
   it('still tolerates stray empties inside an otherwise valid list', () => {
     expect(resolveModels(parseModelList('alpha,,beta'), providers)).toEqual(['alpha', 'beta']);
+  });
+});
+
+describe('lookupProvider', () => {
+  const providers = {
+    gw: { name: 'gw', apiKey: 'k', baseURL: 'https://gw.example/v1', model: 'default-model' },
+  };
+
+  it('returns a configured provider by key', () => {
+    expect(lookupProvider(providers, 'gw')?.model).toBe('default-model');
+  });
+
+  it('overrides the model for <provider>:<model> and splits at the first colon only', () => {
+    expect(lookupProvider(providers, 'gw:kimi-k3')).toMatchObject({ baseURL: 'https://gw.example/v1', model: 'kimi-k3' });
+    expect(lookupProvider(providers, 'gw:llama3:8b')?.model).toBe('llama3:8b');
+    expect(providers.gw.model).toBe('default-model');
+  });
+
+  it('returns undefined for an unknown provider or an empty model', () => {
+    expect(lookupProvider(providers, 'other:kimi-k3')).toBeUndefined();
+    expect(lookupProvider(providers, 'gw:')).toBeUndefined();
+    expect(lookupProvider(providers, ':kimi-k3')).toBeUndefined();
   });
 });

@@ -68,7 +68,7 @@ function firstLine(text: string): string {
   return text.split('\n')[0]?.trim() ?? '';
 }
 
-function escapeComma(text: string): string {
+export function escapeComma(text: string): string {
   return text.replace(/,/g, '\\,');
 }
 

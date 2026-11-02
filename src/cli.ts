@@ -7,6 +7,7 @@ import { reviewCommand } from './commands/review.js';
 import { planCommand } from './commands/plan.js';
 import { debateCommand, debateTurnCommand, debateAbortCommand } from './commands/debate.js';
 import { setupCommand } from './commands/setup.js';
+import { modelsCommand } from './commands/models.js';
 import { homeCommand } from './commands/home.js';
 import { hookCommand } from './commands/hook.js';
 import { formatError } from './errors.js';
@@ -33,6 +34,12 @@ program
   .description('Check provider authentication status')
   .action(setupCommand);
 
+program
+  .command('models [providers...]')
+  .description('List the models each configured endpoint or gateway offers')
+  .option('--filter <text>', 'Show only model IDs that contain this text')
+  .action(modelsCommand);
+
 function collect(value: string, previous: string[]): string[] {
   return previous.concat([value]);
 }
@@ -40,7 +47,7 @@ function collect(value: string, previous: string[]): string[] {
 program
   .command('review <prompt>')
   .description('Run an adversarial review of an artifact or question')
-  .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('-m, --models <models>', 'Comma-separated judges: <provider> or <provider>:<model>')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
   .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
@@ -54,7 +61,7 @@ program
 program
   .command('plan <prompt>')
   .description('Pressure-test a plan or decision')
-  .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('-m, --models <models>', 'Comma-separated judges: <provider> or <provider>:<model>')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
   .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('-f, --file <path>', 'Attach a file, directory, or cmd:<command> for its stdout (repeatable)', collect, [])
@@ -72,7 +79,7 @@ const debate = program
 
 debate
   .command('run <prompt>', { isDefault: true, hidden: true })
-  .option('-m, --models <models>', 'Comma-separated provider list')
+  .option('-m, --models <models>', 'Comma-separated judges: <provider> or <provider>:<model>')
   .option('--max-tokens <n>', 'Positive per-judge token budget; caller picks per task: small for a finished plan, large for a codebase scan')
   .option('--effort <level>', 'Reasoning effort: low|medium|high|xhigh (overrides env; omitted when unconfigured)')
   .option('--max-rounds <n>', 'Maximum debate rounds (default: 5)')
