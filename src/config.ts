@@ -3,6 +3,7 @@ import { CouncilError } from './errors.js';
 
 export interface CouncilConfig {
   providers: Record<string, ProviderConfig>;
+  defaultModels?: string[];
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): CouncilConfig {
@@ -38,7 +39,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     };
   }
 
-  return { providers };
+  const defaultModels = env.COUNCIL_MODELS?.split(',').map((m) => m.trim()).filter(Boolean) ?? [];
+  return defaultModels.length > 0 ? { providers, defaultModels } : { providers };
 }
 
 export function parseEffort(value: string, source = '--effort'): Effort {
@@ -98,6 +100,13 @@ export function listProviders(config: CouncilConfig): string[] {
   return Object.keys(config.providers);
 }
 
+// Judges used when --models is absent: COUNCIL_MODELS if set, else every provider.
+export function defaultJudges(config: CouncilConfig): string[] {
+  return config.defaultModels && config.defaultModels.length > 0
+    ? config.defaultModels
+    : listProviders(config);
+}
+
 export function resolveModel(providerConfig: ProviderConfig): string | undefined {
   return providerConfig.model;
 }
@@ -126,7 +135,7 @@ export function noModelMessage(providerKey: string): string {
 // asked review and plan for a provider named "".
 export function resolveModels(
   models: string[] | undefined,
-  providers: Record<string, ProviderConfig>
+  config: CouncilConfig
 ): string[] {
   const explicit = (models ?? []).map((m) => m.trim()).filter((m) => m.length > 0);
   if (explicit.length > 0) return explicit;
@@ -136,12 +145,12 @@ export function resolveModels(
     throw new CouncilError('--models was given but listed no providers', 'BAD_ARG');
   }
 
-  const configured = Object.keys(providers);
-  if (configured.length === 0) {
+  const judges = defaultJudges(config);
+  if (judges.length === 0) {
     throw new CouncilError(
       'No providers configured. Set COUNCIL_PROVIDERS or pass --models.',
       'NO_PROVIDERS'
     );
   }
-  return configured;
+  return judges;
 }

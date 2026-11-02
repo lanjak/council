@@ -23,7 +23,7 @@ export interface ReviewOptions extends RunControls {
 export async function runReview(opts: ReviewOptions): Promise<CouncilOutput> {
   const traceId = createTraceId();
   const config = opts.config ?? loadConfig();
-  const models = resolveModels(opts.models, config.providers);
+  const models = resolveModels(opts.models, config);
   const prompt = buildPrompt(opts.prompt, opts);
 
   const blockKey = newBlockKey();

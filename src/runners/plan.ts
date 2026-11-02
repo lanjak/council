@@ -21,7 +21,7 @@ export interface PlanOptions extends RunControls {
 export async function runPlan(opts: PlanOptions): Promise<CouncilOutput> {
   const traceId = createTraceId();
   const config = opts.config ?? loadConfig();
-  const models = resolveModels(opts.models, config.providers);
+  const models = resolveModels(opts.models, config);
   const prompt = buildPrompt(opts.prompt, opts);
   const blockKey = newBlockKey();
   const systemPrompt = planSystemPrompt(blockKey);
