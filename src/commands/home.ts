@@ -19,14 +19,16 @@ export async function homeCommand(): Promise<void> {
     lines.push('  (none configured)');
   }
 
-  lines.push('commands[3]{name,purpose}:');
+  lines.push('commands[4]{name,purpose}:');
   lines.push('  setup,check provider authentication');
+  lines.push('  models,list the models each endpoint or gateway offers');
   lines.push('  review,adversarial review of an artifact or question');
   lines.push('  plan,pressure-test a plan or decision');
 
-  lines.push('help[2]:');
+  lines.push('help[3]:');
   lines.push('  Set COUNCIL_PROVIDERS and per-provider env vars');
   lines.push('  Run `council review "<prompt>" --models <provider1>,<provider2>`');
+  lines.push('  Run `council models` then pick gateway models as --models <provider>:<model>');
 
   console.log(lines.join('\n'));
 }

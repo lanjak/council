@@ -102,6 +102,25 @@ export function resolveModel(providerConfig: ProviderConfig): string | undefined
   return providerConfig.model;
 }
 
+// A judge key is a provider key, or `<provider>:<model>` to call any model a
+// gateway offers through that provider's endpoint and key. Split at the first
+// colon only: model IDs can hold colons (Ollama `llama3:8b`, OpenRouter `:free`).
+export function lookupProvider(
+  providers: Record<string, ProviderConfig>,
+  key: string
+): ProviderConfig | undefined {
+  if (providers[key]) return providers[key];
+  const colon = key.indexOf(':');
+  if (colon <= 0) return undefined;
+  const base = providers[key.slice(0, colon)];
+  const model = key.slice(colon + 1).trim();
+  return base && model ? { ...base, model } : undefined;
+}
+
+export function noModelMessage(providerKey: string): string {
+  return `No model configured for provider "${providerKey}". Pass --models ${providerKey}:<model> (run \`council models ${providerKey}\` to list them)`;
+}
+
 // One resolver for every command. Previously duplicated three times, and the
 // copies had drifted: only debate filtered empty entries, so `--models a,,b`
 // asked review and plan for a provider named "".

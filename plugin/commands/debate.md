@@ -1,6 +1,6 @@
 ---
 description: Run a sequential adversarial debate between LLM judges until consensus
-argument-hint: '<prompt> [--models <providers>] [--max-rounds <n>] [--max-tokens <n>] [--effort <level>]'
+argument-hint: '<prompt> [--models <provider|provider:model,...>] [--max-rounds <n>] [--max-tokens <n>] [--effort <level>]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)
 ---

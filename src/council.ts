@@ -2,11 +2,12 @@ import { createTraceId, tracedChat } from './telemetry.js';
 import { loadProvider } from './providers/index.js';
 import { parseHardBlocks } from './blocks.js';
 import type { CouncilConfig } from './config.js';
+import { lookupProvider, noModelMessage } from './config.js';
 import type { CouncilRequest, JudgeResult } from './types.js';
 
 export async function runCouncil(config: CouncilConfig, request: CouncilRequest, traceId = createTraceId()): Promise<JudgeResult[]> {
   const promises = request.models.map(async (providerKey): Promise<JudgeResult> => {
-    const providerConfig = config.providers[providerKey];
+    const providerConfig = lookupProvider(config.providers, providerKey);
 
     if (!providerConfig) {
       return {
@@ -22,7 +23,7 @@ export async function runCouncil(config: CouncilConfig, request: CouncilRequest,
         provider: providerKey,
         model: 'unknown',
         status: 'skipped',
-        error: { message: `No model configured for provider "${providerKey}"` },
+        error: { message: noModelMessage(providerKey) },
       };
     }
 
