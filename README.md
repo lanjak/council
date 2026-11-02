@@ -97,6 +97,16 @@ first colon, so model IDs that contain colons (`llama3:8b`) work. Providers
 that share one kind, base URL, and key are listed once. A provider without
 `<KEY>_MODEL` is skipped when you call it by its plain key.
 
+To use gateway models without `--models`, set `COUNCIL_MODELS` to a
+comma-separated list of default judges. Each entry is a provider key or
+`<provider>:<model>`. `review`, `plan`, `debate`, and the hook review gate
+use this list when `--models` is not given. Without `COUNCIL_MODELS`, they use
+every configured provider:
+
+```sh
+export COUNCIL_MODELS="gw:kimi-k3,gw:deepseek-v4-pro"
+```
+
 For `<KEY>_KIND=openai`, `council models` sends `GET <KEY>_BASE_URL/models`.
 For `<KEY>_KIND=anthropic`, it uses the Anthropic `GET /v1/models` list.
 
@@ -519,7 +529,7 @@ npx -y @lanjak/council review "..." --models openai,groq
 harness can call. It reads the harness's JSON payload from stdin (or
 `--payload '<json>'`), best-effort, and never hard-fails on unknown shapes.
 
-- `council hook session-start` - prints available providers and usage as
+- `council hook session-start` - prints the default judges and usage as
   context. Always exits 0.
 - `council hook post-edit` - records edited file paths for the session.
   Always exits 0. Harnesses must wait for this command's exit before firing
@@ -527,7 +537,10 @@ harness can call. It reads the harness's JSON payload from stdin (or
 - `council hook stop` - review gate. If edits are pending, the council
   reviews `git diff HEAD` for those paths. Majority-fail verdict blocks with
   exit 2 and the synthesis on stdout. Anything else exits 0; provider outages
-  fail open (edits kept for manual re-review).
+  fail open (edits kept for manual re-review). The gate uses the judges in
+  `COUNCIL_MODELS`, or every configured provider when `COUNCIL_MODELS` is not
+  set. A gateway provider without `<KEY>_MODEL` needs a `<provider>:<model>`
+  entry in `COUNCIL_MODELS`, or the gate skips it.
 
 Claude Code / openclaude wiring (`~/.claude/settings.json`):
 

@@ -13,7 +13,7 @@ export async function planCommand(
   // must fail immediately rather than after a blocking stdin read drains.
   const controls = parseRunControls(options);
   const config = loadConfig();
-  const models = resolveModels(parseModelList(options.models), config.providers);
+  const models = resolveModels(parseModelList(options.models), config);
 
   const output = await runPlan({
     prompt,

@@ -1,4 +1,4 @@
-import { loadConfig, listProviders } from '../config.js';
+import { loadConfig, defaultJudges } from '../config.js';
 import { readStdinPayload } from '../stdin.js';
 import { parseHookPayload } from '../hooks/payload.js';
 import { resolveSessionKey, recordEdit, pendingEdits, clearSession } from '../hooks/state.js';
@@ -44,11 +44,11 @@ export async function hookCommand(
 async function sessionStart(_rawPayload: string): Promise<void> {
   try {
     const config = loadConfig();
-    const providers = listProviders(config);
+    const providers = defaultJudges(config);
     if (providers.length === 0) {
       return; // nothing configured: stay silent, exit 0
     }
-    console.log(`council[available]: providers ${providers.join(',')} | review gate active`);
+    console.log(`council[available]: judges ${providers.join(',')} | review gate active`);
     console.log('help: run `council review "<question>" --diff` for a council review');
   } catch {
     // A context hook must never break session startup.
@@ -96,7 +96,7 @@ async function stop(rawPayload: string): Promise<void> {
 
   try {
     const config = loadConfig();
-    const models = listProviders(config);
+    const models = defaultJudges(config);
     if (models.length === 0) {
       console.log('council[gate_error]: no providers configured - gate inert');
       process.exitCode = 0;

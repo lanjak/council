@@ -1,4 +1,4 @@
-import { loadConfig, resolveModels, parseRunControls, type RunControlFlags } from '../config.js';
+import { loadConfig, resolveModels, parseRunControls, type CouncilConfig, type RunControlFlags } from '../config.js';
 import { runDebate, activeParticipants, CALLER } from '../debate/loop.js';
 import { buildDebateOutput, renderDebateTOON, renderDebatePaused } from '../debate/render.js';
 import { cleanupExpired, newSessionId, saveSession, loadSession, deleteSession } from '../debate/session.js';
@@ -18,18 +18,18 @@ export interface DebateCommandOptions extends ArtifactOptions, RunControlFlags {
 }
 
 // 'caller' is a reserved participant name, never a provider key. Filter it
-// AFTER resolution so an explicit --models list and a COUNCIL_PROVIDERS
-// fallback are both covered - the earlier pre-filter only guarded the
+// AFTER resolution so an explicit --models list and a COUNCIL_MODELS or
+// COUNCIL_PROVIDERS fallback are both covered - the earlier pre-filter only guarded the
 // explicit path.
-function parseModels(raw: string | undefined, providers: Parameters<typeof resolveModels>[1]): string[] {
-  return resolveModels(parseModelList(raw), providers).filter((m) => m !== CALLER);
+function parseModels(raw: string | undefined, config: CouncilConfig): string[] {
+  return resolveModels(parseModelList(raw), config).filter((m) => m !== CALLER);
 }
 
 export async function debateCommand(prompt: string, options: DebateCommandOptions): Promise<void> {
   const controls = parseRunControls(options);
   cleanupExpired();
   const config = loadConfig();
-  const models = parseModels(options.models, config.providers);
+  const models = parseModels(options.models, config);
   if (models.length < 2) {
     throw new CouncilError('A debate needs at least 2 judges; configure more providers or widen --models', 'NO_QUORUM');
   }

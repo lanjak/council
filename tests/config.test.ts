@@ -137,57 +137,83 @@ describe('resolveModels', () => {
     alpha: { name: 'alpha', apiKey: 'k', baseURL: 'u', displayName: 'Alpha', model: 'm' },
     beta: { name: 'beta', apiKey: 'k', baseURL: 'u', displayName: 'Beta', model: 'm' },
   };
+  const config = { providers };
 
   it('returns the explicit list when given', () => {
-    expect(resolveModels(['beta'], providers)).toEqual(['beta']);
+    expect(resolveModels(['beta'], config)).toEqual(['beta']);
   });
 
   it('drops empty entries rather than requesting a provider named ""', () => {
-    expect(resolveModels(['alpha', '', ' '], providers)).toEqual(['alpha']);
+    expect(resolveModels(['alpha', '', ' '], config)).toEqual(['alpha']);
   });
 
   it('falls back to every configured provider', () => {
-    expect(resolveModels(undefined, providers)).toEqual(['alpha', 'beta']);
+    expect(resolveModels(undefined, config)).toEqual(['alpha', 'beta']);
   });
 
   it('throws NO_PROVIDERS when nothing is configured', () => {
-    expect(() => resolveModels(undefined, {})).toThrow(CouncilError);
+    expect(() => resolveModels(undefined, { providers: {} })).toThrow(CouncilError);
     try {
-      resolveModels(undefined, {});
+      resolveModels(undefined, { providers: {} });
     } catch (err) {
       expect((err as CouncilError).code).toBe('NO_PROVIDERS');
     }
   });
 
   it('throws BAD_ARG when --models was given but listed no providers', () => {
-    expect(() => resolveModels(['', ' '], providers)).toThrow(CouncilError);
+    expect(() => resolveModels(['', ' '], config)).toThrow(CouncilError);
     try {
-      resolveModels(['', ' '], providers);
+      resolveModels(['', ' '], config);
     } catch (err) {
       expect((err as CouncilError).code).toBe('BAD_ARG');
     }
   });
 
   it('treats an explicitly empty array as "not specified" and uses all providers', () => {
-    expect(resolveModels([], providers)).toEqual(['alpha', 'beta']);
+    expect(resolveModels([], config)).toEqual(['alpha', 'beta']);
   });
 
   it('rejects a garbled --models flag through the real CLI composition', () => {
     // The composition every command uses. This is what the CLI actually runs.
-    expect(() => resolveModels(parseModelList(',,'), providers)).toThrow(CouncilError);
+    expect(() => resolveModels(parseModelList(',,'), config)).toThrow(CouncilError);
     try {
-      resolveModels(parseModelList(',,'), providers);
+      resolveModels(parseModelList(',,'), config);
     } catch (err) {
       expect((err as CouncilError).code).toBe('BAD_ARG');
     }
   });
 
   it('still resolves a valid list through the real CLI composition', () => {
-    expect(resolveModels(parseModelList('alpha, beta'), providers)).toEqual(['alpha', 'beta']);
+    expect(resolveModels(parseModelList('alpha, beta'), config)).toEqual(['alpha', 'beta']);
   });
 
   it('still tolerates stray empties inside an otherwise valid list', () => {
-    expect(resolveModels(parseModelList('alpha,,beta'), providers)).toEqual(['alpha', 'beta']);
+    expect(resolveModels(parseModelList('alpha,,beta'), config)).toEqual(['alpha', 'beta']);
+  });
+
+  it('prefers explicit --models over COUNCIL_MODELS over every provider', () => {
+    const withDefaults = loadConfig({
+      COUNCIL_PROVIDERS: 'alpha,beta',
+      COUNCIL_MODELS: ' alpha:big , ,beta ',
+    });
+    expect(resolveModels(['beta'], withDefaults)).toEqual(['beta']);
+    expect(resolveModels(undefined, withDefaults)).toEqual(['alpha:big', 'beta']);
+    expect(resolveModels(undefined, loadConfig({ COUNCIL_PROVIDERS: 'alpha,beta' }))).toEqual(['alpha', 'beta']);
+  });
+
+  it('falls back to every provider when COUNCIL_MODELS lists nothing', () => {
+    expect(resolveModels(undefined, loadConfig({ COUNCIL_PROVIDERS: 'alpha', COUNCIL_MODELS: ' , ' }))).toEqual(['alpha']);
+  });
+});
+
+describe('COUNCIL_MODELS', () => {
+  it('parses a trimmed default judge list without checking it against providers', () => {
+    const config = loadConfig({ COUNCIL_PROVIDERS: 'gw', COUNCIL_MODELS: 'gw:llama3:8b, unknown ,,gw' });
+    expect(config.defaultModels).toEqual(['gw:llama3:8b', 'unknown', 'gw']);
+  });
+
+  it('is absent when unset', () => {
+    expect(loadConfig({ COUNCIL_PROVIDERS: 'gw' }).defaultModels).toBeUndefined();
   });
 });
 

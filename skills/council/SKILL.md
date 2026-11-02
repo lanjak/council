@@ -28,6 +28,8 @@ Use this skill when the user wants adversarial feedback on a plan, decision, des
    Pass a judge as a provider key (uses `<KEY>_MODEL`) or as
    `<provider>:<model>` (any listed model through that provider). Choose
    models from different families for independent opinions.
+   `COUNCIL_MODELS=gw:kimi-k3,openai` sets the default judges when
+   `--models` is not given. Without it, every configured provider is a judge.
 3. Run the CLI:
    ```bash
    npx -y @lanjak/council review "<prompt or artifact summary>" --models openai,groq

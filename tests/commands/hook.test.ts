@@ -247,6 +247,28 @@ describe('hookCommand stop gate', () => {
     expect(fs.existsSync(path.join(dir, 'council', 'claude-code-g1.jsonl'))).toBe(false);
   });
 
+  it('reviews with provider:model judges from COUNCIL_MODELS on a gateway-only setup', async () => {
+    clearGateEnv();
+    process.env.COUNCIL_PROVIDERS = 'gw';
+    process.env.GW_API_KEY = 'k';
+    process.env.GW_BASE_URL = 'https://gw/v1';
+    process.env.COUNCIL_MODELS = 'gw:kimi-k3,gw:llama3:8b';
+    seedEdits('claude-code-g1', ['/proj/a.ts']);
+    vi.mocked(runCouncil).mockResolvedValue([
+      { provider: 'gw:kimi-k3', model: 'kimi-k3', status: 'success', response: 'ok\nVERDICT: pass' },
+      { provider: 'gw:llama3:8b', model: 'llama3:8b', status: 'success', response: 'ok\nVERDICT: pass' },
+    ]);
+
+    try {
+      await hookCommand('stop', { payload });
+    } finally {
+      for (const v of ['GW_API_KEY', 'GW_BASE_URL', 'COUNCIL_MODELS']) delete process.env[v];
+    }
+
+    expect(vi.mocked(runCouncil).mock.calls[0][1].models).toEqual(['gw:kimi-k3', 'gw:llama3:8b']);
+    expect(process.exitCode).toBe(0);
+  });
+
   it('fails open on an internal error and keeps state', async () => {
     seedEdits('claude-code-g1', ['/proj/a.ts']);
     vi.mocked(runCouncil).mockRejectedValue(new Error('catastrophic'));
