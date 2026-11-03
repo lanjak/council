@@ -28,7 +28,11 @@ beforeEach(() => {
     },
   });
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  // vitest 4: restoreAllMocks no longer clears vi.fn() call history.
+  vi.clearAllMocks();
+});
 
 describe('debateCommand', () => {
   it('runs a debate and prints the TOON output', async () => {
